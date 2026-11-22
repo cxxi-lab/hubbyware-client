@@ -39,7 +39,8 @@ jobs:
           fi
           echo "Analyzing $range for app/ + platforms/desktop/ commits"
 
-          commits=$(git log "$range" --pretty='%B%n---END---' -- app/ platforms/desktop/ platforms/tunnel/)
+          # the frame runtime (packages/hubbyware-sdk/frame) ships inside the app (public/hubby-runtime)
+          commits=$(git log "$range" --pretty='%B%n---END---' -- app/ platforms/desktop/ platforms/tunnel/ packages/hubbyware-sdk/frame/)
           if [ -z "$commits" ]; then
             echo "No commits touching app/ or platforms/desktop/, skipping."
             echo "bump=" >> "$GITHUB_OUTPUT"
