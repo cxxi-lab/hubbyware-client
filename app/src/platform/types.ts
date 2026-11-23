@@ -28,7 +28,8 @@ export interface UpdateState {
 	error: string | null
 }
 
-export interface IntegrationCookie { name: string; value: string }
+/** `devices`: the devices it is for ("desktop", "phone"); none: every one */
+export interface IntegrationCookie { name: string; value: string; devices?: string[] }
 export interface IntegrationReferer { url: string; cdnHostPattern: string }
 export interface WebsiteIntegration {
 	cookies?: IntegrationCookie[]

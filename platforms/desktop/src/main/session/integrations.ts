@@ -6,6 +6,8 @@ import { dirname, join } from 'path'
 export interface IntegrationCookie {
 	name: string
 	value: string
+	/** the devices it is for ("desktop", "phone"); none: every one (a site's layout cookie: its desktop's) */
+	devices?: string[]
 }
 
 export interface IntegrationReferer {
@@ -100,7 +102,8 @@ class IntegrationsRegistry {
 	private async applyCookies(host: string, integration: WebsiteIntegration, sess: Session): Promise<void> {
 		if (!integration.cookies) return
 		const expirationDate = Math.floor(Date.now() / 1000) + ONE_YEAR_SEC
-		await Promise.all(integration.cookies.map(c =>
+		// a cookie for some devices only (`devices`: "desktop", "phone"): a phone's not set here
+		await Promise.all(integration.cookies.filter(c => !Array.isArray(c.devices) || c.devices.includes('desktop')).map(c =>
 			sess.cookies.set({
 				url: `https://www.${host}`,
 				name: c.name,

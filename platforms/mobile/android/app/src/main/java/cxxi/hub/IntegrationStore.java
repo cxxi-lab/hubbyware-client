@@ -70,8 +70,13 @@ final class IntegrationStore {
         List<String> values = new ArrayList<>();
         for (int i = 0; i < cookies.length(); i++) {
             JSONObject c = cookies.getJSONObject(i);
-            values.add(c.getString("name") + "=" + c.getString("value")
-                + "; Domain=." + host + "; Path=/; Secure; Max-Age=" + ONE_YEAR_SEC);
+            // a cookie for other devices only (`devices` without "phone": a desktop layout's): removed here
+            JSONArray devices = c.optJSONArray("devices");
+            boolean forPhone = devices == null;
+            for (int d = 0; devices != null && d < devices.length(); d++) if ("phone".equals(devices.optString(d))) forPhone = true;
+            values.add(forPhone
+                ? c.getString("name") + "=" + c.getString("value") + "; Domain=." + host + "; Path=/; Secure; Max-Age=" + ONE_YEAR_SEC
+                : c.getString("name") + "=; Domain=." + host + "; Path=/; Secure; Max-Age=0");
         }
         setCookies(host, values);
         Log.i(TAG, "applied " + host + " (" + values.size() + " cookie(s)"
