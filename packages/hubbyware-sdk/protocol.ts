@@ -13,6 +13,11 @@ export interface HubbyPage {
 	icon?: unknown
 	/** in the navigation, under this section (no title: not in the navigation) */
 	section?: string
+	/**
+	 * on a phone's bottom bar: a tab, the round button in the middle (`primary`), or not there; as
+	 * soon as one page says, the bar is its pages in their order (not grouped by section)
+	 */
+	phone?: 'tab' | 'primary' | 'hidden'
 }
 
 /** A task of the hubby (server docs/plan-tasks.md), as its frame hears it. */

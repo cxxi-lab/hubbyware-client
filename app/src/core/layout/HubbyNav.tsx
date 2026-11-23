@@ -99,6 +99,18 @@ export function HubbyNav({ items: all, icon, sections, action, search }: {
 			key: item.to, label: item.label, Label: item.Label, icon: item.icon,
 			active: isActive(item, pathname), onClick: () => navigate(item.to)
 		})
+		// the hubby lays its bar out itself (a page's `phone`): its pages in their order, flat
+		if (items.some(i => i.phone)) {
+			const laid: BottomBarTab[] = items.filter(i => i.phone !== 'hidden').map(item => ({
+				key: item.to,
+				label: item.label,
+				icon: item.icon ?? (item.section ? sections?.[item.section] : undefined) ?? icon ?? faCube,
+				active: isActive(item, pathname),
+				onClick: () => navigate(item.to),
+				primary: item.phone === 'primary'
+			}))
+			return <BottomBar tabs={laid} />
+		}
 		const tabs: BottomBarTab[] = tabsOf(items, icon ?? faCube, sections ?? {}, action).map(tab =>
 			tab.kind === 'item' ? { key: tab.key, label: tab.label, icon: tab.icon, active: isActive(tab.item, pathname), onClick: () => navigate(tab.item.to) }
 			: tab.kind === 'action' ? { key: tab.key, label: tab.label, icon: tab.icon, active: false, onClick: tab.onClick }

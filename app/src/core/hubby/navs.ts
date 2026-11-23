@@ -26,6 +26,7 @@ export function setHubbyNav(hubby: string, pages: HubbyPage[], sections: Record<
 		label: p.title ?? p.path,
 		section: p.section || undefined,
 		icon: p.icon as NavItem['icon'],
+		...(p.phone === 'tab' || p.phone === 'primary' || p.phone === 'hidden' ? { phone: p.phone } : {}),
 		end: true
 	}))
 	navs = { ...navs, [hubby]: { items, sections, live: navs[hubby]?.live } }

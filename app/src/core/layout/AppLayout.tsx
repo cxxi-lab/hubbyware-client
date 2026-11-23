@@ -35,6 +35,8 @@ export interface NavItem {
 	end?: boolean
 	/** set by the hubby as it goes (its live navigation): not in a phone's bottom bar */
 	live?: boolean
+	/** on a phone's bottom bar: a tab, the round button in the middle, or not there (the hubby says) */
+	phone?: 'tab' | 'primary' | 'hidden'
 }
 export interface NavDomain {
 	id: string

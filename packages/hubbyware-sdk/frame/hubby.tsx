@@ -34,7 +34,8 @@ export interface PagesDefinition {
 
 /** The form of a hubby's manifest (what the frame uses of it; the rest is the host's or left out). */
 export interface ManifestDefinition {
-	navItems: Array<{ to: string, label: string, section?: string, icon?: unknown, home?: boolean }>
+	/** `phone`: on a phone's bottom bar, a tab, the round button in the middle, or not there (protocol.ts HubbyPage) */
+	navItems: Array<{ to: string, label: string, section?: string, icon?: unknown, home?: boolean, phone?: 'tab' | 'primary' | 'hidden' }>
 	navSections?: Record<string, unknown>
 	routes: Array<{ path: string, Component: ComponentType, persistent?: boolean, prefix?: boolean }>
 	/** contexts around all its pages, outermost first */
@@ -146,7 +147,8 @@ function ManifestRoot({ definition }: { definition: ManifestDefinition }) {
 			path: innerOf(init.hubby, pathOnly(item.to)) ?? item.to,
 			title: item.label,
 			icon: item.icon,
-			section: item.section ?? ''
+			section: item.section ?? '',
+			...(item.phone ? { phone: item.phone } : {})
 		}))
 		register(pages, definition.navSections ?? {})
 	}, [init])
