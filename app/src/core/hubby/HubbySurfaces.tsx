@@ -17,6 +17,10 @@ export type WebviewElement = HTMLElement & {
 	reload(): void
 	loadURL(url: string): Promise<void>
 	getURL(): string
+	goBack(): void
+	goForward(): void
+	canGoBack(): boolean
+	canGoForward(): boolean
 }
 
 export interface Surfaces {
@@ -49,6 +53,8 @@ export function surfaceMethods(
 		},
 		'surface.exec': (id: unknown, code: unknown) => element(id).executeJavaScript(String(code)),
 		'surface.reload': (id: unknown) => { element(id).reload(); return null },
+		'surface.back': (id: unknown) => { const el = element(id); if (el.canGoBack()) el.goBack(); return null },
+		'surface.forward': (id: unknown) => { const el = element(id); if (el.canGoForward()) el.goForward(); return null },
 		'surface.load': async (id: unknown, url: unknown) => {
 			if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('a surface loads an http(s) page')
 			await ensureIntegrationForUrl(call, url)
@@ -106,8 +112,9 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 		}
 		const offs = [
 			tell('dom-ready', () => ({})),
-			tell('did-navigate', e => ({ url: e.url, isMainFrame: true })),
-			tell('did-navigate-in-page', e => ({ url: e.url, isMainFrame: e.isMainFrame })),
+			// with where its history stands (the frame's back / forward buttons)
+			tell('did-navigate', e => ({ url: e.url, isMainFrame: true, canGoBack: el.canGoBack(), canGoForward: el.canGoForward() })),
+			tell('did-navigate-in-page', e => ({ url: e.url, isMainFrame: e.isMainFrame, canGoBack: el.canGoBack(), canGoForward: el.canGoForward() })),
 			tell('page-favicon-updated', e => ({ favicons: e.favicons })),
 			tell('console-message', e => ({ message: e.message, level: e.level })),
 			tell('did-fail-load', e => ({ errorCode: e.errorCode, errorDescription: e.errorDescription, validatedURL: e.validatedURL, isMainFrame: e.isMainFrame })),

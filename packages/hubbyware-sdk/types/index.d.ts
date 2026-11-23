@@ -774,7 +774,8 @@ export declare const storage: {
  * A web page shown in the hubby (docs/plan-isolation.md D3): a webview can't live in a frame, the
  * host shows one over this place — in the hubby's partition, the site's integration applied before
  * it loads, the shell's player blocklist on. It takes a webview's attributes and its ref stands for
- * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL): a hubby
+ * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL, goBack,
+ * goForward, canGoBack / canGoForward as of its last navigation): a hubby
  * swaps `<webview>` for `<WebSurface>` and keeps its code. `covered`: something of the frame is over
  * it (a menu, an overlay): kept loaded, a picture of it shown in its place (the host's snapshot), so
  * the frame's menu shows over what looks like the page.
@@ -797,6 +798,11 @@ export interface WebSurfaceElement {
 	reload(): void;
 	loadURL(url: string): Promise<void>;
 	getURL(): string;
+	goBack(): void;
+	goForward(): void;
+	/** as of its last navigation (the host tells them with each did-navigate) */
+	canGoBack(): boolean;
+	canGoForward(): boolean;
 }
 export declare const WebSurface: import("react").ForwardRefExoticComponent<WebSurfaceProps & import("react").RefAttributes<WebSurfaceElement>>;
 export type ButtonColor = "primary" | "secondary" | "danger";

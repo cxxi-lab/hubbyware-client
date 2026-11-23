@@ -6,7 +6,8 @@ import { call, onHostMessage } from './sdk'
  * A web page shown in the hubby (docs/plan-isolation.md D3): a webview can't live in a frame, the
  * host shows one over this place — in the hubby's partition, the site's integration applied before
  * it loads, the shell's player blocklist on. It takes a webview's attributes and its ref stands for
- * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL): a hubby
+ * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL, goBack,
+ * goForward, canGoBack / canGoForward as of its last navigation): a hubby
  * swaps `<webview>` for `<WebSurface>` and keeps its code. `covered`: something of the frame is over
  * it (a menu, an overlay): kept loaded, a picture of it shown in its place (the host's snapshot), so
  * the frame's menu shows over what looks like the page.
@@ -30,6 +31,11 @@ export interface WebSurfaceElement {
 	reload(): void
 	loadURL(url: string): Promise<void>
 	getURL(): string
+	goBack(): void
+	goForward(): void
+	/** as of its last navigation (the host tells them with each did-navigate) */
+	canGoBack(): boolean
+	canGoForward(): boolean
 }
 
 let nextSurface = 1
@@ -48,6 +54,7 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 	const url = useRef(props.src)
 	const handle = useMemo<WebSurfaceElement & { emit: (event: SurfaceEvent, detail: Record<string, unknown>) => void }>(() => {
 		const listeners = new Map<string, Set<(e: Event) => void>>()
+		const history = { back: false, forward: false }
 		return {
 			addEventListener(event, listener) {
 				let set = listeners.get(event)
@@ -59,12 +66,18 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 			reload: () => { void call('surface.reload', id) },
 			loadURL: target => call<void>('surface.load', id, target),
 			getURL: () => url.current,
+			goBack: () => { void call('surface.back', id) },
+			goForward: () => { void call('surface.forward', id) },
+			canGoBack: () => history.back,
+			canGoForward: () => history.forward,
 			emit(event, detail) {
 				if (event === 'snapshot') {
 					if (typeof detail.image === 'string' && detail.image.startsWith('data:image/')) setSnapshot(detail.image)
 					return
 				}
 				if ((event === 'did-navigate' || event === 'did-navigate-in-page') && typeof detail.url === 'string' && detail.isMainFrame !== false) url.current = detail.url
+				if (typeof detail.canGoBack === 'boolean') history.back = detail.canGoBack
+				if (typeof detail.canGoForward === 'boolean') history.forward = detail.canGoForward
 				// the webview's event, as its listeners read it (its fields on the event)
 				const e = Object.assign(new Event(event), detail)
 				listeners.get(event)?.forEach(l => l(e))
