@@ -519,7 +519,7 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 		return <div className="flex-1 flex items-center justify-center text-sm text-steel-400">This hubby runs isolated: not available on this platform yet.</div>
 	}
 	return (
-		<div className="relative flex-1 min-h-0 flex">
+		<div className="relative flex-1 min-h-0 flex bg-steel-900">
 			<iframe
 				key={build}
 				ref={frame}
@@ -528,7 +528,9 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 				// popups: its links open outside the app (the system's browser, the shell decides), as a
 				// mail's links and attachments do
 				sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-				className="flex-1 min-h-0 w-full border-0 bg-steel-900"
+				// above a covered web surface (which goes under it), see-through where the frame is: its own
+				// background is the frame document's (the container's below, same colour)
+				className="relative z-[1] flex-1 min-h-0 w-full border-0 bg-transparent"
 			/>
 			{platform.capabilities.webview && (
 				<SurfaceViews hubby={hubby} surfaces={{ states: surfaceStates, elements: surfaceElements }} call={(path, options) => hubbyApi(hubby).api(path, options)} send={send} />

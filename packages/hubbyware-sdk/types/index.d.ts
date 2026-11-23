@@ -34,8 +34,7 @@ export interface AppState {
 	tunnelReady: boolean;
 }
 /** What a web surface tells its frame (the names of the webview's events it stands for). */
-/** `snapshot`: the page as it was when covered ({ image }: a data: URL), shown in its place meanwhile */
-export type SurfaceEvent = "dom-ready" | "did-navigate" | "did-navigate-in-page" | "page-favicon-updated" | "console-message" | "did-fail-load" | "snapshot";
+export type SurfaceEvent = "dom-ready" | "did-navigate" | "did-navigate-in-page" | "page-favicon-updated" | "console-message" | "did-fail-load";
 /**
  * The hubby SDK inside its frame (prototype): every call goes to the host by message and comes
  * back as a promise. The frame has no token, no cookie, no access to the app.
@@ -777,8 +776,8 @@ export declare const storage: {
  * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL, goBack,
  * goForward, canGoBack / canGoForward as of its last navigation): a hubby
  * swaps `<webview>` for `<WebSurface>` and keeps its code. `covered`: something of the frame is over
- * it (a menu, an overlay): kept loaded, a picture of it shown in its place (the host's snapshot), so
- * the frame's menu shows over what looks like the page.
+ * it (a menu, an overlay): the host puts the page under the frame, which is see-through over its
+ * place meanwhile (this element and the document's background) — the menu over the live page.
  */
 export interface WebSurfaceProps {
 	src: string;

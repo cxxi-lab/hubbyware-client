@@ -6,7 +6,9 @@ import type { HostMessage, SurfaceEvent, SurfaceState } from '@cxxi-lab/hubbywar
 
 /**
  * An isolated hubby's web surfaces (docs/plan-isolation.md D3): a webview can't live in its frame,
- * the host shows one over the place the frame gives (`<WebSurface>`), in the hubby's partition. The
+ * the host shows one over the place the frame gives (`<WebSurface>`), in the hubby's partition.
+ * Covered (a menu of the frame over it): the webview goes under the frame (z-index), which is
+ * see-through there meanwhile — the menu over the live page, nothing captured. The
  * host applies what the app's web socle does around a webview — the site's integration before it
  * loads and before each navigation to a site not seen yet, the shell's player blocklist — and
  * tells the frame the webview's events.
@@ -27,9 +29,6 @@ export interface Surfaces {
 	states: Record<number, SurfaceState>
 	elements: Map<number, WebviewElement>
 }
-
-/** A covered surface waiting for the frame to show its picture before it steps aside (by surface id). */
-const awaitingPicture = new Map<number, () => void>()
 
 /** What the frame may ask of its surfaces (the host's methods). */
 export function surfaceMethods(
@@ -56,8 +55,6 @@ export function surfaceMethods(
 		},
 		'surface.exec': (id: unknown, code: unknown) => element(id).executeJavaScript(String(code)),
 		'surface.reload': (id: unknown) => { element(id).reload(); return null },
-		// the frame shows the page's picture: the page may step aside (no blank between them)
-		'surface.pictureShown': (id: unknown) => { if (typeof id === 'number') awaitingPicture.get(id)?.(); return null },
 		'surface.back': (id: unknown) => { const el = element(id); if (el.canGoBack()) el.goBack(); return null },
 		'surface.forward': (id: unknown) => { const el = element(id); if (el.canGoForward()) el.goForward(); return null },
 		'surface.load': async (id: unknown, url: unknown) => {
@@ -141,31 +138,6 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 		}
 	}, [src !== null])
 
-	// covered (a menu of the frame over it): a picture of the page goes to the frame, shown in its
-	// place, then the page steps aside — the frame's menu over what looks like the page
-	const [aside, setAside] = useState(false)
-	useEffect(() => {
-		if (!state.covered) { setAside(false); return }
-		const el = ref.current as (WebviewElement & { capturePage?: () => Promise<{ toDataURL(): string, isEmpty(): boolean }> }) | null
-		let alive = true
-		const capture = el?.capturePage?.()
-		if (!capture) { setAside(true); return }
-		// aside once the frame shows the picture (it says so), at the latest after a moment
-		let timer: ReturnType<typeof setTimeout> | null = null
-		const stepAside = () => { if (alive) setAside(true); awaitingPicture.delete(id); if (timer) clearTimeout(timer) }
-		void capture.then(
-			image => {
-				if (!alive) return
-				if (image.isEmpty()) { stepAside(); return }
-				awaitingPicture.set(id, stepAside)
-				timer = setTimeout(stepAside, 500)
-				send({ type: 'surface', surface: id, event: 'snapshot', detail: { image: image.toDataURL() } })
-			},
-			stepAside
-		)
-		return () => { alive = false; awaitingPicture.delete(id); if (timer) clearTimeout(timer) }
-	}, [state.covered])
-
 	if (src === null) return null
 	const rect = state.rect
 	return (
@@ -178,7 +150,7 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 			useragent={state.userAgent ?? undefined}
 			webpreferences={state.webPreferences ?? undefined}
 			style={rect
-				? { position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, display: 'inline-flex', visibility: state.covered && aside ? 'hidden' : 'visible' }
+				? { position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, display: 'inline-flex', zIndex: state.covered ? 0 : 2 }
 				: { position: 'absolute', left: 0, top: 0, width: 0, height: 0, visibility: 'hidden' }}
 		/>
 	)

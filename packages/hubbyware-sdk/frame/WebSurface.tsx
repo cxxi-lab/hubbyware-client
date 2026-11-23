@@ -1,4 +1,4 @@
-import { createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, type CSSProperties } from 'react'
 import type { SurfaceEvent, SurfaceState } from '../protocol'
 import { call, onHostMessage } from './sdk'
 
@@ -9,8 +9,8 @@ import { call, onHostMessage } from './sdk'
  * the webview (addEventListener of its events, executeJavaScript, reload, loadURL, getURL, goBack,
  * goForward, canGoBack / canGoForward as of its last navigation): a hubby
  * swaps `<webview>` for `<WebSurface>` and keeps its code. `covered`: something of the frame is over
- * it (a menu, an overlay): kept loaded, a picture of it shown in its place (the host's snapshot), so
- * the frame's menu shows over what looks like the page.
+ * it (a menu, an overlay): the host puts the page under the frame, which is see-through over its
+ * place meanwhile (this element and the document's background) — the menu over the live page.
  */
 export interface WebSurfaceProps {
 	src: string
@@ -39,6 +39,15 @@ export interface WebSurfaceElement {
 }
 
 let nextSurface = 1
+
+// how many surfaces are covered: the document see-through while any is (its own background off)
+let covering = 0
+function seeThrough(delta: number): void {
+	covering = Math.max(0, covering + delta)
+	const value = covering > 0 ? 'transparent' : ''
+	document.documentElement.style.background = value
+	document.body.style.background = value
+}
 const surfaces = new Map<number, (event: SurfaceEvent, detail: Record<string, unknown>) => void>()
 
 onHostMessage(m => {
@@ -48,9 +57,12 @@ onHostMessage(m => {
 export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(function WebSurface(props, ref) {
 	const place = useRef<HTMLDivElement>(null)
 	const id = useMemo(() => nextSurface++, [])
-	// the page as it was when covered (the host's picture), shown meanwhile
-	const [snapshot, setSnapshot] = useState<string | null>(null)
-	useEffect(() => { if (!props.covered) setSnapshot(null) }, [props.covered])
+	// covered: the document see-through (the page shows under the frame); counted, several may be
+	useEffect(() => {
+		if (!props.covered) return
+		seeThrough(+1)
+		return () => seeThrough(-1)
+	}, [props.covered])
 	const url = useRef(props.src)
 	const handle = useMemo<WebSurfaceElement & { emit: (event: SurfaceEvent, detail: Record<string, unknown>) => void }>(() => {
 		const listeners = new Map<string, Set<(e: Event) => void>>()
@@ -71,10 +83,6 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 			canGoBack: () => history.back,
 			canGoForward: () => history.forward,
 			emit(event, detail) {
-				if (event === 'snapshot') {
-					if (typeof detail.image === 'string' && detail.image.startsWith('data:image/')) setSnapshot(detail.image)
-					return
-				}
 				if ((event === 'did-navigate' || event === 'did-navigate-in-page') && typeof detail.url === 'string' && detail.isMainFrame !== false) url.current = detail.url
 				if (typeof detail.canGoBack === 'boolean') history.back = detail.canGoBack
 				if (typeof detail.canGoForward === 'boolean') history.forward = detail.canGoForward
@@ -124,6 +132,5 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 		return () => cancelAnimationFrame(frame)
 	}, [id, src, httpreferrer, useragent, webpreferences, covered])
 
-	return createElement('div', { ref: place, className: props.className, style: { ...props.style, position: 'relative' } },
-		props.covered && snapshot ? createElement('img', { src: snapshot, alt: '', onLoad: () => { requestAnimationFrame(() => requestAnimationFrame(() => { void call('surface.pictureShown', id) })) }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' } }) : null)
+	return createElement('div', { ref: place, className: props.className, style: props.covered ? { ...props.style, background: 'transparent' } : props.style })
 })

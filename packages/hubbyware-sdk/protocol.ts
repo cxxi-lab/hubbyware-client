@@ -44,8 +44,7 @@ export interface AppState {
 }
 
 /** What a web surface tells its frame (the names of the webview's events it stands for). */
-/** `snapshot`: the page as it was when covered ({ image }: a data: URL), shown in its place meanwhile */
-export type SurfaceEvent = 'dom-ready' | 'did-navigate' | 'did-navigate-in-page' | 'page-favicon-updated' | 'console-message' | 'did-fail-load' | 'snapshot'
+export type SurfaceEvent = 'dom-ready' | 'did-navigate' | 'did-navigate-in-page' | 'page-favicon-updated' | 'console-message' | 'did-fail-load'
 
 /**
  * A web surface as the frame asks for it (docs/plan-isolation.md D3): a webview the host shows over
