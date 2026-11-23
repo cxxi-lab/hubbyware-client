@@ -97,6 +97,12 @@ public class SurfacesPlugin extends Plugin {
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setMediaPlaybackRequiresUserGesture(true);
+        // as a phone's browser: the page's viewport tag respected, a page wider than it fitted to its width
+        web.getSettings().setUseWideViewPort(true);
+        web.getSettings().setLoadWithOverviewMode(true);
+        web.getSettings().setSupportZoom(true);
+        web.getSettings().setBuiltInZoomControls(true);
+        web.getSettings().setDisplayZoomControls(false);
         if (userAgent != null && !userAgent.isEmpty()) web.getSettings().setUserAgentString(userAgent);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
         web.setBackgroundColor(Color.parseColor("#1E2025"));
