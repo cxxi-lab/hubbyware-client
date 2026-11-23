@@ -5,6 +5,7 @@ import { faCube, faEllipsis, faMagnifyingGlass, type IconDefinition } from '@for
 import { useMediaQuery } from '@cxxi-lab/hubbyware-ui'
 import type { NavItem } from '@core/layout/AppLayout'
 import { BottomBar, type BottomBarTab } from '@core/layout/BottomBar'
+import { reselectPage } from '@core/hubby/navs'
 
 const linkClass = ({ isActive }: { isActive: boolean }) => [
 	'block relative py-2 pl-8 pr-10 text-sm/[1] no-underline transition truncate',
@@ -106,7 +107,8 @@ export function HubbyNav({ items: all, icon, sections, action, search }: {
 				label: item.label,
 				icon: item.icon ?? (item.section ? sections?.[item.section] : undefined) ?? icon ?? faCube,
 				active: isActive(item, pathname),
-				onClick: () => navigate(item.to),
+				// already there: the page is told (Shuffle shuffles again), as Android's tab bars do
+				onClick: () => (isActive(item, pathname) ? reselectPage(item.to) : navigate(item.to)),
 				primary: item.phone === 'primary'
 			}))
 			return <BottomBar tabs={laid} />

@@ -115,6 +115,8 @@ export type HostMessage =
 	| { type: 'surface', surface: number, event: SurfaceEvent, detail: Record<string, unknown> }
 	/** its live navigation's action was clicked */
 	| { type: 'nav-action' }
+	/** a page of its navigation tapped while already on it (a phone's bottom bar): its path */
+	| { type: 'nav-reselect', path: string }
 	/**
 	 * Another hubby (`from`) calls a method of this hubby's API (docs/plan-api-hubbies.md): its input
 	 * checked against its api.json; the frame answers with `served` (same id)

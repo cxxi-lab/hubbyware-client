@@ -6,7 +6,7 @@
 import { createElement, useEffect, useState, type ReactNode } from 'react'
 import { call, currentInit, useAppState, watchCollection } from './sdk'
 
-export { ai, api, apiStream, ApiError, errorMessage, hubbies, nav, notifications, oauth, settings, tasks, useAppState, useInit, usePath, type AgentCallResult, type AgentDevice, type AiImageRequest, type AiImageResult, type AiImportedFile, type AiImportKind, type AiSpeechRequest, type AiSpeechResult, type AgentEngine, type AgentRunOptions, type AgentRunRequest, type AgentRunResult, type AgentTool, type AiChatOptions, type AiChatRequest, type AiChatResult, type AiMessage, type AiRepoModel, type AiTool, type AiToolCall, type AiUserModel, type ApiHandler, type NavEntry, type HubbyAnswer, type TimelineEntry, type OAuthConnection, type Task, type TaskState } from './sdk'
+export { ai, api, apiStream, ApiError, errorMessage, hubbies, nav, notifications, oauth, settings, tasks, useAppState, useInit, useNavReselect, usePath, type AgentCallResult, type AgentDevice, type AiImageRequest, type AiImageResult, type AiImportedFile, type AiImportKind, type AiSpeechRequest, type AiSpeechResult, type AgentEngine, type AgentRunOptions, type AgentRunRequest, type AgentRunResult, type AgentTool, type AiChatOptions, type AiChatRequest, type AiChatResult, type AiMessage, type AiRepoModel, type AiTool, type AiToolCall, type AiUserModel, type ApiHandler, type NavEntry, type HubbyAnswer, type TimelineEntry, type OAuthConnection, type Task, type TaskState } from './sdk'
 export { defineHubby, start, type HubbyDefinition, type HubbyPageDefinition } from './hubby'
 export { BottomBar, type BottomBarEntry, type BottomBarTab } from './BottomBar'
 export { platform, storage, type Capabilities, type FramePlatform } from './platform'

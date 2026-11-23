@@ -50,6 +50,12 @@ export declare class ApiError extends Error {
 }
 /** Best human-readable message for a caught error: server detail first. */
 export declare function errorMessage(err: unknown, fallback?: string): string;
+/**
+ * A page of its navigation tapped while already on it (a phone's bottom bar, as Android's apps
+ * do: back to the top, or the page's own action, e.g. Shuffle again). `path`: the page's, absolute
+ * (`/<hubby>/…`).
+ */
+export declare function useNavReselect(path: string, onReselect: () => void): void;
 /** One of its API's methods: run in its frame, on what another hubby (`from`) sends. */
 export type ApiHandler = (input: any, context: {
 	from: string;

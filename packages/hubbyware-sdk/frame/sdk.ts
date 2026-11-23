@@ -62,6 +62,20 @@ function applyTheme(theme: 'light' | 'dark' | undefined, accent: string | undefi
 }
 
 const hostListeners = new Set<(m: HostMessage) => void>()
+const reselectListeners = new Set<(path: string) => void>()
+
+/**
+ * A page of its navigation tapped while already on it (a phone's bottom bar, as Android's apps
+ * do: back to the top, or the page's own action, e.g. Shuffle again). `path`: the page's, absolute
+ * (`/<hubby>/…`).
+ */
+export function useNavReselect(path: string, onReselect: () => void): void {
+	useEffect(() => {
+		const listener = (p: string) => { if (p === path) onReselect() }
+		reselectListeners.add(listener)
+		return () => { reselectListeners.delete(listener) }
+	}, [path, onReselect])
+}
 
 /** Called with each message of the host (the frame's other parts: the player, the surfaces). */
 export function onHostMessage(listener: (m: HostMessage) => void): () => void {
@@ -88,6 +102,7 @@ window.addEventListener('message', event => {
 		initListeners.forEach(l => l(m))
 	}
 	else if (m.type === 'back') handleBack()
+	else if (m.type === 'nav-reselect') reselectListeners.forEach(l => l(m.path))
 	else if (m.type === 'path') pathListeners.forEach(l => l(m.path))
 	else if (m.type === 'theme') applyTheme(m.theme, m.accent)
 	// the app's window is back: the frame's own `focus`, as in the app (a hubby refreshing on it)

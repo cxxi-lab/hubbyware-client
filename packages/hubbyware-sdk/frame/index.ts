@@ -3,6 +3,6 @@
 // the base stylesheet, extracted into runtime.css at build (the frame page links it)
 import './runtime.css'
 
-export { call, collection, nav, notifications, oauth, settings, tasks, useInit, usePath, type Doc, type OAuthConnection, type Task, type TaskState } from './sdk'
+export { call, collection, nav, notifications, oauth, settings, tasks, useInit, useNavReselect, usePath, type Doc, type OAuthConnection, type Task, type TaskState } from './sdk'
 export { defineHubby, start, type HubbyDefinition, type HubbyPageDefinition } from './hubby'
 export { useBackHandler, useMediaQuery } from '@cxxi-lab/hubbyware-ui'

@@ -10,7 +10,7 @@ import { hasScope, useHubbyScopes } from '@core/hubbies/scopes'
 import { useBackHandler, useMediaQuery } from '@cxxi-lab/hubbyware-ui'
 import { platform } from '@platform'
 import { PROTOCOL, type Envelope, type GuestMessage, type HostMessage } from '@cxxi-lab/hubbyware-sdk/protocol'
-import { setHubbyLiveNav, setHubbyNav } from './navs'
+import { onPageReselect, setHubbyLiveNav, setHubbyNav } from './navs'
 import { currentAccent, currentTheme, useAccent, useTheme } from '@core/theme/theme'
 import { useAmountsBlurred, useBlurEpoch, useHubbyVisible, usePrivateMode } from '@core/privacy/hidden'
 import { useVpnStatus } from '@shared/hooks/useVpnStatus'
@@ -106,6 +106,11 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 	const theme = useTheme()
 	const accent = useAccent()
 	useEffect(() => { send({ type: 'theme', theme, accent }) }, [theme, accent])
+	// one of its pages tapped again in the bottom bar: told to it
+	useEffect(() => {
+		if (headless) return
+		return onPageReselect(path => { if (path === `/${hubby}` || path.startsWith(`/${hubby}/`)) send({ type: 'nav-reselect', path }) })
+	}, [hubby, headless])
 	// the app's window back: told to the frame (its own focus event doesn't fire then)
 	useEffect(() => {
 		const onFocus = () => send({ type: 'focus' })

@@ -18,6 +18,19 @@ export interface LiveNav {
 }
 
 let navs: Record<string, { items: NavItem[], sections: Record<string, unknown>, live?: LiveNav }> = {}
+
+const reselected = new Set<(path: string) => void>()
+
+/** A page of a hubby's navigation tapped while already on it (a phone's bottom bar): told to its frame. */
+export function reselectPage(path: string): void {
+	reselected.forEach(l => l(path))
+}
+
+/** Heard by a hubby's host (its frame told when one of its pages is reselected). */
+export function onPageReselect(listener: (path: string) => void): () => void {
+	reselected.add(listener)
+	return () => { reselected.delete(listener) }
+}
 const listeners = new Set<() => void>()
 
 export function setHubbyNav(hubby: string, pages: HubbyPage[], sections: Record<string, unknown>): void {
