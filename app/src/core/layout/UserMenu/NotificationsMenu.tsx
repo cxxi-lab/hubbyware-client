@@ -5,6 +5,7 @@ import { faBell, faCube, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { IconButton, Dropdown } from '@cxxi-lab/hubbyware-ui'
 import { useHubbies } from '@core/contexts/HubbiesContext'
 import { dismissNotification, setLocalNotification, useLocalNotifications, useNotifications, useNotificationsOpening, type AppNotification, type LocalNotification } from '@core/notifications/notifications'
+import { styles } from './UserMenu.variants'
 
 /**
  * The bell (top right) and its menu: the notifications of the hubbies shown, newest first, then the
@@ -44,6 +45,7 @@ export function NotificationsMenu() {
 	return (
 		<Dropdown
 			side="right"
+			className={styles.phoneWide()}
 			isOpen={open}
 			onOpenChange={setOpen}
 			header={isOpen => (
@@ -56,7 +58,7 @@ export function NotificationsMenu() {
 				</span>
 			)}
 		>
-			<div className="w-[340px] max-sm:w-[calc(100vw-2rem)]">
+			<div className="w-[340px] max-sm:w-full">
 				{count === 0 ? (
 					<div className="px-5 py-4 text-sm text-steel-300 text-center">No notifications</div>
 				) : (

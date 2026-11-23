@@ -77,7 +77,7 @@ export function TopBar({ domains, activeDomainId }: Props) {
 
 	return (
 		// One row: brand, hubbies (not on phones), controls.
-		<header className="grid grid-cols-[auto_1fr_auto] max-sm:grid-cols-[auto_1fr] shrink-0 bg-steel-950 border-b border-steel-700">
+		<header className="relative grid grid-cols-[auto_1fr_auto] max-sm:grid-cols-[auto_1fr] shrink-0 bg-steel-950 border-b border-steel-700">
 			<div className="flex items-center h-14 pl-4">
 				<Brand to="/" onClick={consoleTap ? onBrandClick : undefined} />
 				{consoleTap && <CommandSheet open={consoleOpen} onClose={() => setConsoleOpen(false)} />}

@@ -23,7 +23,7 @@ export function UserMenu({ onHubbies, onDevices, onSettings, onLogout }: UserMen
 			</li>
 
 			<li>
-				<Dropdown side="right" header={userHeader}>
+				<Dropdown side="right" header={userHeader} className={styles.phoneWide()}>
 					<div className={styles.menu()}>
 						<div className={styles.section()}>
 							{onHubbies && (
