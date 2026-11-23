@@ -4,7 +4,7 @@ import { type UserMenuProps } from './UserMenu.types'
 import { styles } from './UserMenu.variants'
 import { NotificationsMenu } from './NotificationsMenu'
 
-export function UserMenu({ onHubbies, onDevices, onSettings, onLogout }: UserMenuProps) {
+export function UserMenu({ hubby, onHubbies, onDevices, onSettings, onLogout }: UserMenuProps) {
 	const userHeader = (isOpen: boolean) => (
 		<IconButton
 			size="xl"
@@ -25,6 +25,14 @@ export function UserMenu({ onHubbies, onDevices, onSettings, onLogout }: UserMen
 			<li>
 				<Dropdown side="right" header={userHeader} className={styles.phoneWide()}>
 					<div className={styles.menu()}>
+						{/* in a hubby: its settings first, apart */}
+						{hubby && (
+							<div className={styles.section()}>
+								<button type="button" onClick={hubby.onSettings} className={styles.item()}>
+									{hubby.label} settings
+								</button>
+							</div>
+						)}
 						<div className={styles.section()}>
 							{onHubbies && (
 								<button type="button" onClick={onHubbies} className={styles.item()}>

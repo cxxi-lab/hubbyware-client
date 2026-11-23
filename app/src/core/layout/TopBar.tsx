@@ -24,6 +24,8 @@ interface Props {
 }
 
 export function TopBar({ domains, activeDomainId }: Props) {
+	// the hubby open (a domain that is a hubby): its settings in the menu
+	const openHubby = HUBBY_MANIFESTS.find(m => m.id === activeDomainId) ?? null
 	const notifications = useNotifications()
 	const updating = useUpdating()
 	const navigate = useNavigate()
@@ -158,6 +160,7 @@ export function TopBar({ domains, activeDomainId }: Props) {
 				)}
 
 				<UserMenu
+					hubby={openHubby ? { label: openHubby.label, onSettings: () => navigate(`/hubbies/${openHubby.id}`) } : null}
 					onHubbies={() => navigate('/hubbies')}
 					onDevices={() => navigate('/devices')}
 					onSettings={() => platform.openSettings()}
