@@ -26,6 +26,11 @@ export interface HubbyNavItem {
 	section?: string
 	icon?: unknown
 	home?: boolean
+	/**
+	 * on a phone's bottom bar: a tab, the round button in the middle (`primary`), or not there; as
+	 * soon as one page says, the bar is its pages in their order (not grouped by section)
+	 */
+	phone?: 'tab' | 'primary' | 'hidden'
 }
 
 export interface HubbyRoute {
