@@ -9,12 +9,12 @@
 @import "@cxxi-lab/hubbyware-ui/fonts.css";
 
 /* the frame's whole height for the pages: a page filling it (Browse's web surface, Discover's panels)
-   stretches with flex-1; a longer one still scrolls the document */
-html, body {
+   stretches with flex-1, and its own children's percentages resolve (Shuffle's player: h-full, a
+   min-height alone leaves them indefinite); a longer page overflows and the document scrolls */
+html, body, #root {
 	height: 100%;
 }
 #root {
-	min-height: 100%;
 	display: flex;
 	flex-direction: column;
 }
