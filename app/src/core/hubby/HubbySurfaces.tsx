@@ -3,6 +3,7 @@ import type { ApiCall } from '@core/api/client'
 import { ensureIntegrationForUrl, isIntegrationKnownSync } from '@shared/web/integrations'
 import { syncPlayerBlocklist } from '@shared/web/playerBlocklist'
 import type { HostMessage, SurfaceEvent, SurfaceState } from '@cxxi-lab/hubbyware-sdk/protocol'
+import { platform } from '@platform'
 
 /**
  * An isolated hubby's web surfaces (docs/plan-isolation.md D3): a webview can't live in its frame,
@@ -154,4 +155,97 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 				: { position: 'absolute', left: 0, top: 0, width: 0, height: 0, visibility: 'hidden' }}
 		/>
 	)
+}
+
+/**
+ * The surfaces as native views (Android: platform.nativeSurfaces): a WebView over the app's at the
+ * frame's place plus the surface's, shown while the frame is (its own host may be hidden) and not
+ * covered (a native view can't go under the frame: covered, it steps aside).
+ */
+export function NativeSurfaceViews({ surfaces, frame, call, send }: {
+	surfaces: Surfaces
+	frame: { current: HTMLIFrameElement | null }
+	call: ApiCall
+	send: (message: HostMessage) => void
+}) {
+	const native = platform.nativeSurfaces
+	const { states, elements } = surfaces
+	// where each one is shown, as last told to the native side
+	const shown = useRef(new Map<number, string>())
+	const history = useRef(new Map<number, { url: string, back: boolean, forward: boolean }>())
+
+	// its events, told to the frame (and its history kept for canGoBack / canGoForward)
+	useEffect(() => {
+		if (!native) return
+		return native.onEvent(e => {
+			if (typeof e.detail.url === 'string' || typeof e.detail.canGoBack === 'boolean') {
+				const h = history.current.get(e.id) ?? { url: '', back: false, forward: false }
+				if (typeof e.detail.url === 'string') h.url = e.detail.url
+				if (typeof e.detail.canGoBack === 'boolean') h.back = e.detail.canGoBack
+				if (typeof e.detail.canGoForward === 'boolean') h.forward = e.detail.canGoForward
+				history.current.set(e.id, h)
+			}
+			send({ type: 'surface', surface: e.id, event: e.event as SurfaceEvent, detail: e.detail })
+		})
+	}, [native])
+
+	// the frame's methods on it (reload, back, exec…), as the desktop's webview elements answer them
+	useEffect(() => {
+		if (!native) return
+		for (const id of Object.keys(states).map(Number)) {
+			if (elements.has(id)) continue
+			elements.set(id, {
+				executeJavaScript: (code: string) => native.exec(id, code),
+				reload: () => { void native.reload(id) },
+				loadURL: (url: string) => native.load(id, url),
+				getURL: () => history.current.get(id)?.url ?? states[id]?.src ?? '',
+				goBack: () => { void native.back(id) },
+				goForward: () => { void native.forward(id) },
+				canGoBack: () => history.current.get(id)?.back ?? false,
+				canGoForward: () => history.current.get(id)?.forward ?? false
+			} as unknown as WebviewElement)
+		}
+		for (const id of [...shown.current.keys()]) {
+			if (states[id]) continue
+			shown.current.delete(id)
+			history.current.delete(id)
+			elements.delete(id)
+			void native.close(id)
+		}
+	}, [states, native])
+
+	// placed each frame: the frame moves (the app's layout) or hides (another hubby, another page)
+	useEffect(() => {
+		if (!native) return
+		let raf = 0
+		const tick = () => {
+			const el = frame.current
+			const box = el && el.offsetParent !== null ? el.getBoundingClientRect() : null
+			for (const [key, state] of Object.entries(states)) {
+				const id = Number(key)
+				const r = state.rect
+				const visible = !!box && !!r && !state.covered && box.width > 0
+				const place = { x: (box?.left ?? 0) + (r?.x ?? 0), y: (box?.top ?? 0) + (r?.y ?? 0), width: r?.width ?? 0, height: r?.height ?? 0 }
+				const signature = JSON.stringify([place, visible, state.src])
+				if (shown.current.get(id) === signature) continue
+				const first = !shown.current.has(id)
+				shown.current.set(id, signature)
+				const show = () => native.show({ id, ...place, visible, src: state.src, referrer: state.referrer, userAgent: state.userAgent }).catch(err => console.warn('[surfaces] show', err))
+				// a new page: the site's integration (its cookies) first
+				if (first) void ensureIntegrationForUrl(call, state.src).finally(show)
+				else void show()
+			}
+			raf = requestAnimationFrame(tick)
+		}
+		tick()
+		return () => cancelAnimationFrame(raf)
+	}, [states, native])
+
+	// gone with the host
+	useEffect(() => () => {
+		if (!native) return
+		for (const id of shown.current.keys()) void native.close(id)
+		shown.current.clear()
+	}, [native])
+	return null
 }

@@ -28,6 +28,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(LocalStorePlugin.class);
         registerPlugin(ThemePlugin.class);
         registerPlugin(LocalAiPlugin.class);
+        registerPlugin(SurfacesPlugin.class);
         // Which version of each hubby this session runs (built in, or a downloaded newer one).
         HubbyStore.get().setup(this);
         // The tunnel only carries Private: it starts with private mode (the web side, VpnPlugin).

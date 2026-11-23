@@ -1,5 +1,6 @@
 import { registerPlugin } from '@capacitor/core'
 import { createLocalAi, createLocalModels } from './capacitorLocalAi'
+import { createNativeSurfaces } from './capacitorSurfaces'
 import type { NativeIcon, NativePlayerAction, NativePlayerApi, NativePlayerOptions, NativePlayerPanel, Platform, PushApi, PlatformCapabilities, Unsubscribe, VpnInfo, WebsiteIntegration } from './types'
 import { checkHubbyUpdates, createHubbyStore, startHubbyUpdates } from './capacitorHubbies'
 import { createUpdater } from './capacitorUpdater'
@@ -22,7 +23,8 @@ const capabilities: PlatformCapabilities = {
 	privateMode: true,
 	updates: true,
 	integrations: true,
-	webview: false,
+	// web surfaces: native WebViews over the app's (Surfaces plugin), not <webview> elements
+	webview: !import.meta.env.DEV,
 	nativePlayer: true,
 	nativeWindows: false,
 	mute: false,
@@ -205,6 +207,7 @@ export function createCapacitorPlatform(): Platform {
 		// the phone's own models (text, voice: client docs/plan-ia-android.md)
 		localModels: import.meta.env.DEV ? null : createLocalModels(),
 		localAi: import.meta.env.DEV ? null : createLocalAi(),
+		nativeSurfaces: import.meta.env.DEV ? null : createNativeSurfaces(),
 		agentBridge: null,
 		// served by the WebView (HubbyStore intercepts these hosts)
 		hubbyUrl: hubby => `https://${hubby}.hubby.localhost/`,

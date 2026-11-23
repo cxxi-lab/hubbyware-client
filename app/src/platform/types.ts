@@ -242,6 +242,18 @@ export interface AiImageResult { image: string, width: number, height: number, s
 export interface AiSpeechResult { audio: string, seconds: number }
 export type AiOutcome<T> = { ok: true, result: T } | { ok: false, code: 'consent' | 'missing' | 'unavailable' | 'invalid' | 'refused' | 'failed', message: string }
 
+/** A native web surface (Android: plugins/SurfacesPlugin.java), at a place in CSS pixels of the app's page. */
+export interface NativeSurfacesApi {
+	show(surface: { id: number, x: number, y: number, width: number, height: number, visible: boolean, src: string, referrer: string | null, userAgent: string | null }): Promise<void>
+	close(id: number): Promise<void>
+	exec(id: number, code: string): Promise<unknown>
+	reload(id: number): Promise<void>
+	back(id: number): Promise<void>
+	forward(id: number): Promise<void>
+	load(id: number, url: string): Promise<void>
+	onEvent(cb: (event: { id: number, event: string, detail: Record<string, unknown> }) => void): Unsubscribe
+}
+
 /** A device agent's request, through Hubbyware's MCP server (main: ai/mcp.ts), for the app to answer (core/ai/agentBridge.ts). */
 export interface AgentRequest {
 	rid: number
@@ -556,6 +568,11 @@ export interface Platform {
 	readonly localModels: LocalModelsApi | null
 	/** null: no local AI here (Android, for now) */
 	readonly localAi: LocalAiApi | null
+	/**
+	 * A hubby's web surfaces as native views (Android: a WebView over the app's at the frame's place);
+	 * null: the shell shows them as <webview> elements (desktop) or not at all.
+	 */
+	readonly nativeSurfaces: NativeSurfacesApi | null
 	/** null: no device agents here (they are desktop programs) */
 	readonly agentBridge: AgentBridgeApi | null
 	/**

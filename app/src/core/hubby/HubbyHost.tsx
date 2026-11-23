@@ -16,7 +16,7 @@ import { useAmountsBlurred, useBlurEpoch, useHubbyVisible, usePrivateMode } from
 import { useVpnStatus } from '@shared/hooks/useVpnStatus'
 import type { AppState, CallError, SurfaceState } from '@cxxi-lab/hubbyware-sdk/protocol'
 import { storageSet, storageSnapshot } from './storage'
-import { SurfaceViews, surfaceMethods, type WebviewElement } from './HubbySurfaces'
+import { NativeSurfaceViews, SurfaceViews, surfaceMethods, type WebviewElement } from './HubbySurfaces'
 import { callAll, callHubby, isAvailable, served, serveFrom } from './apis'
 import { askModelConsent } from '@core/ai/ModelConsent'
 import { agentCall, agentTools, assistantHubbies, hubbiesWithApis, setAssistantHubbies } from '@core/ai/agent'
@@ -532,8 +532,9 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 				// background is the frame document's (the container's below, same colour)
 				className="relative z-[1] flex-1 min-h-0 w-full border-0 bg-transparent"
 			/>
-			{platform.capabilities.webview && (
-				<SurfaceViews hubby={hubby} surfaces={{ states: surfaceStates, elements: surfaceElements }} call={(path, options) => hubbyApi(hubby).api(path, options)} send={send} />
+			{platform.capabilities.webview && (platform.nativeSurfaces
+				? <NativeSurfaceViews surfaces={{ states: surfaceStates, elements: surfaceElements }} frame={frame} call={(path, options) => hubbyApi(hubby).api(path, options)} send={send} />
+				: <SurfaceViews hubby={hubby} surfaces={{ states: surfaceStates, elements: surfaceElements }} call={(path, options) => hubbyApi(hubby).api(path, options)} send={send} />
 			)}
 		</div>
 	)
