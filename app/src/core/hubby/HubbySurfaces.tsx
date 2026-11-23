@@ -129,6 +129,22 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 		}
 	}, [src !== null])
 
+	// covered (a menu of the frame over it): a picture of the page goes to the frame, shown in its
+	// place, then the page steps aside — the frame's menu over what looks like the page
+	const [aside, setAside] = useState(false)
+	useEffect(() => {
+		if (!state.covered) { setAside(false); return }
+		const el = ref.current as (WebviewElement & { capturePage?: () => Promise<{ toDataURL(): string, isEmpty(): boolean }> }) | null
+		let alive = true
+		const capture = el?.capturePage?.()
+		if (!capture) { setAside(true); return }
+		void capture.then(
+			image => { if (alive && !image.isEmpty()) send({ type: 'surface', surface: id, event: 'snapshot', detail: { image: image.toDataURL() } }) },
+			() => {}
+		).finally(() => { if (alive) setAside(true) })
+		return () => { alive = false }
+	}, [state.covered])
+
 	if (src === null) return null
 	const rect = state.rect
 	return (
@@ -141,7 +157,7 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 			useragent={state.userAgent ?? undefined}
 			webpreferences={state.webPreferences ?? undefined}
 			style={rect
-				? { position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, display: 'inline-flex', visibility: state.covered ? 'hidden' : 'visible' }
+				? { position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, display: 'inline-flex', visibility: state.covered && aside ? 'hidden' : 'visible' }
 				: { position: 'absolute', left: 0, top: 0, width: 0, height: 0, visibility: 'hidden' }}
 		/>
 	)
