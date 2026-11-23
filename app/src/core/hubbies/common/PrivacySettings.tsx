@@ -4,14 +4,20 @@ import { announceHubbiesChange, fetchHubbiesState } from '@core/api/hubbies'
 import type { HubbyManifest } from '@core/hubby/types'
 import { useRevealedHubbies } from '@core/privacy/hidden'
 import { platform } from '@platform'
-import { Button, Switch, Modal } from '@cxxi-lab/hubbyware-ui'
+import { Button, ChoiceSwitch, CodeInput, Switch, Modal } from '@cxxi-lab/hubbyware-ui'
 
 interface Privacy {
 	hidden: boolean
 	shortcut: boolean
 	locked: boolean
+	/** what its lock is: a password, or a PIN (6 digits, on a keypad) */
+	lock?: LockKind | null
 	blur: boolean
 }
+
+type LockKind = 'password' | 'pin'
+/** a PIN's length (the server's HubbyPrivacyKinds::PIN_DIGITS) */
+const PIN_DIGITS = 6
 
 const NONE: Privacy = { hidden: false, shortcut: false, locked: false, blur: false }
 
@@ -121,7 +127,9 @@ export function PrivacySettings({ hubby: m }: { hubby: HubbyManifest }) {
 						<div className="flex-1 min-w-0">
 							<div className="text-sm text-white">Lock</div>
 							<div className="text-xs text-steel-300">
-								{privacy.locked ? 'Its own password is asked each time it is opened.' : 'Ask a password of its own each time it is opened.'}
+								{privacy.locked
+									? privacy.lock === 'pin' ? 'Its PIN is asked each time it is opened.' : 'Its own password is asked each time it is opened.'
+									: 'Ask a password or a PIN of its own each time it is opened.'}
 							</div>
 						</div>
 						{privacy.locked ? (
@@ -156,6 +164,7 @@ export function PrivacySettings({ hubby: m }: { hubby: HubbyManifest }) {
 				<PasswordModal
 					hubby={m}
 					action={action}
+					privacyLock={privacy?.lock ?? null}
 					onClose={() => setAction(null)}
 					onDone={(all, shortcut) => {
 						setAction(null)
@@ -179,9 +188,11 @@ const TITLES: Record<Action['kind'], string> = {
 }
 
 /** Asks the account's password (and the new shortcut), then does the action. */
-function PasswordModal({ hubby: m, action, onClose, onDone }: {
+function PasswordModal({ hubby: m, action, privacyLock, onClose, onDone }: {
 	hubby: HubbyManifest
 	action: Action
+	/** the lock it has now (its removal says which) */
+	privacyLock: LockKind | null
 	onClose: () => void
 	onDone: (all: Record<string, Privacy> | null, shortcut?: string) => void
 }) {
@@ -189,6 +200,8 @@ function PasswordModal({ hubby: m, action, onClose, onDone }: {
 	const [shortcut, setShortcut] = useState('')
 	const [lockPassword, setLockPassword] = useState('')
 	const [lockAgain, setLockAgain] = useState('')
+	const [lockKind, setLockKind] = useState<LockKind>('password')
+	const pickKind = (kind: LockKind) => { setLockKind(kind); setLockPassword(''); setLockAgain('') }
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -206,7 +219,7 @@ function PasswordModal({ hubby: m, action, onClose, onDone }: {
 				onDone(res.data)
 			}
 			else if (action.kind === 'lock') {
-				const res = await api<{ data: Record<string, Privacy> }>(`${base}/lock`, { method: 'PUT', body: JSON.stringify({ password, lock: lockPassword }) })
+				const res = await api<{ data: Record<string, Privacy> }>(`${base}/lock`, { method: 'PUT', body: JSON.stringify({ password, lock: lockPassword, kind: lockKind }) })
 				onDone(res.data)
 			}
 			else if (action.kind === 'unlock') {
@@ -232,7 +245,7 @@ function PasswordModal({ hubby: m, action, onClose, onDone }: {
 
 	const ready = password !== ''
 		&& (action.kind !== 'set' || /^[a-pr-z0-9]{3,16}$/i.test(shortcut))
-		&& (action.kind !== 'lock' || (lockPassword.length >= 4 && lockPassword === lockAgain))
+		&& (action.kind !== 'lock' || (lockPassword === lockAgain && (lockKind === 'pin' ? new RegExp(`^\\d{${PIN_DIGITS}}$`).test(lockPassword) : lockPassword.length >= 4)))
 
 	return (
 		<Modal title={TITLES[action.kind]} size="sm" onClose={onClose}>
@@ -245,17 +258,41 @@ function PasswordModal({ hubby: m, action, onClose, onDone }: {
 				)}
 				{action.kind === 'lock' && (
 					<>
-						<label className="flex flex-col gap-1 text-xs text-steel-300">
-							{m.label}'s own password (4 characters at least)
-							<input type="password" value={lockPassword} onChange={e => setLockPassword(e.target.value)} autoFocus autoComplete="new-password" className={INPUT} />
-						</label>
-						<label className="flex flex-col gap-1 text-xs text-steel-300">
-							Again
-							<input type="password" value={lockAgain} onChange={e => setLockAgain(e.target.value)} autoComplete="new-password" className={INPUT} />
-						</label>
+						<div className="flex">
+							<ChoiceSwitch
+								label="Lock with"
+								value={lockKind}
+								options={[{ value: 'password', label: 'Password' }, { value: 'pin', label: 'PIN' }]}
+								onChange={pickKind}
+							/>
+						</div>
+						{lockKind === 'password' ? (
+							<>
+								<label className="flex flex-col gap-1 text-xs text-steel-300">
+									{m.label}'s own password (4 characters at least)
+									<input type="password" value={lockPassword} onChange={e => setLockPassword(e.target.value)} autoFocus autoComplete="new-password" className={INPUT} />
+								</label>
+								<label className="flex flex-col gap-1 text-xs text-steel-300">
+									Again
+									<input type="password" value={lockAgain} onChange={e => setLockAgain(e.target.value)} autoComplete="new-password" className={INPUT} />
+								</label>
+							</>
+						) : (
+							<>
+								<div className="flex flex-col gap-1 text-xs text-steel-300">
+									{m.label}'s PIN ({PIN_DIGITS} digits)
+									<CodeInput key="pin" label={`${m.label}'s PIN`} length={PIN_DIGITS} masked autoFocus value={lockPassword} onChange={setLockPassword} />
+								</div>
+								<div className="flex flex-col gap-1 text-xs text-steel-300">
+									Again
+									<CodeInput key="again" label={`${m.label}'s PIN, again`} length={PIN_DIGITS} masked value={lockAgain} onChange={setLockAgain}
+										isInvalid={lockAgain.length === PIN_DIGITS && lockAgain !== lockPassword} />
+								</div>
+							</>
+						)}
 					</>
 				)}
-				{action.kind === 'unlock' && <p className="m-0 text-xs text-steel-300">{m.label} will open without its password.</p>}
+				{action.kind === 'unlock' && <p className="m-0 text-xs text-steel-300">{m.label} will open without its {privacyLock === 'pin' ? 'PIN' : 'password'}.</p>}
 				{action.kind === 'remove' && <p className="m-0 text-xs text-steel-300">{m.label} will show again, everywhere.</p>}
 				{action.kind === 'unhide' && <p className="m-0 text-xs text-steel-300">{m.label} will show everywhere, without its shortcut.</p>}
 				<label className="flex flex-col gap-1 text-xs text-steel-300">

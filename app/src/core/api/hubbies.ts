@@ -14,6 +14,8 @@ export interface HubbiesState {
 	hidden?: string[]
 	/** The hubbies locked by a password of their own (Privacy): their pages wait for it. */
 	locked?: string[]
+	/** among them, the ones locked by a PIN (asked on a keypad) */
+	lockedByPin?: string[]
 	/** The hubbies whose amounts are blurred (Privacy). */
 	blurred?: string[]
 }

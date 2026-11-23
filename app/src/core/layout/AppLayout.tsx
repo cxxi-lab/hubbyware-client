@@ -271,7 +271,7 @@ export function AppLayout() {
 						(location.pathname === path || location.pathname.startsWith(`${path}/`)) && <Component key={path} />
 					))}
 					{visibleHubbies.map(m => (
-						<HubbyPages key={m.id} hubby={m} pathname={location.pathname} locked={(hubbies.locked ?? []).includes(m.id)} />
+						<HubbyPages key={m.id} hubby={m} pathname={location.pathname} locked={(hubbies.locked ?? []).includes(m.id)} pin={(hubbies.lockedByPin ?? []).includes(m.id)} />
 					))}
 					<Outlet />
 				</main>
@@ -291,7 +291,7 @@ function routeMatches(route: HubbyManifest['routes'][number], pathname: string):
 	return pathname === route.path || (!!route.prefix && pathname.startsWith(`${route.path}/`))
 }
 
-function HubbyPages({ hubby, pathname, locked }: { hubby: HubbyManifest, pathname: string, locked: boolean }) {
+function HubbyPages({ hubby, pathname, locked, pin }: { hubby: HubbyManifest, pathname: string, locked: boolean, pin: boolean }) {
 	const pages = hubby.routes.map(route => route.persistent
 		? <KeepAlive key={route.path} when={routeMatches(route, pathname)}><route.Component /></KeepAlive>
 		: routeMatches(route, pathname) ? <route.Component key={route.path} /> : null)
@@ -302,7 +302,7 @@ function HubbyPages({ hubby, pathname, locked }: { hubby: HubbyManifest, pathnam
 		: <>{pages}</>
 	// a locked one: behind its password first (nothing of it loads before)
 	const content = locked
-		? <LockGate hubby={hubby.id} label={hubby.label} active={active}>{tunneled}</LockGate>
+		? <LockGate hubby={hubby.id} label={hubby.label} active={active} pin={pin}>{tunneled}</LockGate>
 		: tunneled
 	return (hubby.providers ?? []).reduceRight<ReactNode>((inner, Provider) => <Provider>{inner}</Provider>, content)
 }
