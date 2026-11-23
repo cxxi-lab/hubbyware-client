@@ -1,7 +1,7 @@
 {
 	"name": "@hub/mobile",
 	"private": true,
-	"version": "0.0.132",
+	"version": "0.0.133",
 	"description": "Capacitor (Android) shell wrapping the shared @hub/app UI.",
 	"scripts": {
 		"build:web": "npm run build -w @hub/app",
