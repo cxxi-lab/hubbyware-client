@@ -215,6 +215,11 @@ export function createHubbyStore(): HubbyStoreApi {
 		},
 		uninstall: id => Hubbies.uninstall({ id }),
 		pending: async () => (await Hubbies.pending()).pending,
+		// looked for now (a version published: the server's event; the app back on screen)
+		async check() {
+			await checkHubbyUpdates()
+			return (await Hubbies.pending()).pending
+		},
 		activate: async (ids?: string[]) => (await Hubbies.activate(ids ? { ids } : undefined)).activated,
 		async setRestricted(hubbies) {
 			const next = new Map<string, PublishedEntry>()

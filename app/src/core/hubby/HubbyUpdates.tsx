@@ -6,9 +6,13 @@ import { onHubbiesEvent } from '@core/notifications/notifications'
 
 /** Back after this long away (ms): a hubby running in the app gets its new version (the app reloads). */
 const AWAY_MS = 2 * 60_000
+/** Back after this long away (ms): the catalogue looked at again (a phone's app is rarely started anew) */
+const LOOK_AGAIN_MS = 30_000
 
 /**
- * Hubbies update themselves (core/hubby/updates.ts): checked every minute, when the app comes back,
+ * Hubbies update themselves (core/hubby/updates.ts): looked for at start, when the server says a
+ * version was published, when the app comes back on screen, every quarter of an hour; switched to
+ * every minute, when the app comes back,
  * and when the open hubby changes (the one left gets its update then). Nothing to show here: the
  * update shows on the hubby's icon, its end in the notifications. A hubby still running in the app
  * gets its new version when the app comes back after a while (it reloads: nothing being typed is
@@ -35,7 +39,8 @@ export function HubbyUpdates({ activeHubby }: { activeHubby: string | null }) {
 		const show = () => {
 			const away = hiddenAt.current === null ? 0 : Date.now() - hiddenAt.current
 			hiddenAt.current = null
-			void runUpdates(open.current)
+			// back on screen after a while: new versions looked for (then the ones ready switched to)
+			void (away >= LOOK_AGAIN_MS ? checkNow(open.current) : runUpdates(open.current))
 			if (away < AWAY_MS) return
 			// a hubby running in the app: its new version needs the app reloaded
 			void store.pending().then(async pending => {
