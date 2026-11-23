@@ -28,6 +28,9 @@ export interface Surfaces {
 	elements: Map<number, WebviewElement>
 }
 
+/** A covered surface waiting for the frame to show its picture before it steps aside (by surface id). */
+const awaitingPicture = new Map<number, () => void>()
+
 /** What the frame may ask of its surfaces (the host's methods). */
 export function surfaceMethods(
 	update: (id: number, state: SurfaceState | null) => void,
@@ -53,6 +56,8 @@ export function surfaceMethods(
 		},
 		'surface.exec': (id: unknown, code: unknown) => element(id).executeJavaScript(String(code)),
 		'surface.reload': (id: unknown) => { element(id).reload(); return null },
+		// the frame shows the page's picture: the page may step aside (no blank between them)
+		'surface.pictureShown': (id: unknown) => { if (typeof id === 'number') awaitingPicture.get(id)?.(); return null },
 		'surface.back': (id: unknown) => { const el = element(id); if (el.canGoBack()) el.goBack(); return null },
 		'surface.forward': (id: unknown) => { const el = element(id); if (el.canGoForward()) el.goForward(); return null },
 		'surface.load': async (id: unknown, url: unknown) => {
@@ -145,11 +150,20 @@ function SurfaceView({ id, hubby, state, elements, call, send }: {
 		let alive = true
 		const capture = el?.capturePage?.()
 		if (!capture) { setAside(true); return }
+		// aside once the frame shows the picture (it says so), at the latest after a moment
+		let timer: ReturnType<typeof setTimeout> | null = null
+		const stepAside = () => { if (alive) setAside(true); awaitingPicture.delete(id); if (timer) clearTimeout(timer) }
 		void capture.then(
-			image => { if (alive && !image.isEmpty()) send({ type: 'surface', surface: id, event: 'snapshot', detail: { image: image.toDataURL() } }) },
-			() => {}
-		).finally(() => { if (alive) setAside(true) })
-		return () => { alive = false }
+			image => {
+				if (!alive) return
+				if (image.isEmpty()) { stepAside(); return }
+				awaitingPicture.set(id, stepAside)
+				timer = setTimeout(stepAside, 500)
+				send({ type: 'surface', surface: id, event: 'snapshot', detail: { image: image.toDataURL() } })
+			},
+			stepAside
+		)
+		return () => { alive = false; awaitingPicture.delete(id); if (timer) clearTimeout(timer) }
 	}, [state.covered])
 
 	if (src === null) return null

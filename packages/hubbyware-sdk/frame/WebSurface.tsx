@@ -125,5 +125,5 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 	}, [id, src, httpreferrer, useragent, webpreferences, covered])
 
 	return createElement('div', { ref: place, className: props.className, style: { ...props.style, position: 'relative' } },
-		props.covered && snapshot ? createElement('img', { src: snapshot, alt: '', style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' } }) : null)
+		props.covered && snapshot ? createElement('img', { src: snapshot, alt: '', onLoad: () => { requestAnimationFrame(() => requestAnimationFrame(() => { void call('surface.pictureShown', id) })) }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' } }) : null)
 })
