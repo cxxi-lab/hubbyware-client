@@ -58,6 +58,11 @@ export function isUnlocked(hubby: string): boolean {
 	return !!unlocked && unlocked.expires > Date.now()
 }
 
+/** When a hubby's unlock runs out (ms since the epoch), null: not unlocked. */
+export function unlockExpiry(hubby: string): number | null {
+	return tokens.get(hubby)?.expires ?? null
+}
+
 export function setUnlocked(hubby: string, token: string, expiresIn: number): void {
 	tokens.set(hubby, { token, expires: Date.now() + expiresIn * 1000 - 5000 })
 	changed()

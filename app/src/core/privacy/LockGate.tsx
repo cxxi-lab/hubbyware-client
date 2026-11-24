@@ -1,19 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, ApiError, errorMessage } from '@core/api/client'
-import { isUnlocked, lock, setUnlocked, useLocks } from '@core/privacy/locks'
+import { isUnlocked, lock, setUnlocked, unlockExpiry, unlockHeadersOf, useLocks } from '@core/privacy/locks'
 import { Button, CodeInput } from '@cxxi-lab/hubbyware-ui'
 
-/** without activity in an unlocked hubby for this long, it locks again */
-const IDLE_MS = 10 * 60_000
-const ACTIVITY = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
+/** an open hubby's unlock renewed this long before it runs out */
+const RENEW_BEFORE_MS = 5 * 60_000
 
 /**
- * A hubby locked by a password of its own (Privacy): its pages show only once it is given (the
- * server answers its API only then). Leaving the hubby locks it again, its pages and their data
- * gone; so does a while without activity in it, or the server's word (the unlock ran out).
+ * A hubby locked by a password or a PIN of its own (Privacy): its pages show only once it is given
+ * (the server answers its API only then) — asked on opening it, not again while it stays open (its
+ * unlock renewed as it would run out). Leaving the hubby locks it again, its pages and their data
+ * gone; so does the server's word (the lock changed or went).
  */
 export function LockGate({ hubby, label, active, pin = false, children }: { hubby: string, label: string, active: boolean, pin?: boolean, children: ReactNode }) {
-	useLocks()
+	// re-renders when unlocked or locked again (and when the unlock is renewed)
+	const revision = useLocks()
 	const unlocked = isUnlocked(hubby)
 
 	// leaving it locks it, and so does its disappearing (hidden again, uninstalled)
@@ -22,20 +23,18 @@ export function LockGate({ hubby, label, active, pin = false, children }: { hubb
 	}, [active, hubby])
 	useEffect(() => () => lock(hubby), [hubby])
 
-	// idle in it
+	// kept open: its unlock renewed before it runs out, without asking again
 	useEffect(() => {
 		if (!active || !unlocked) return
-		let timer = setTimeout(() => lock(hubby), IDLE_MS)
-		const reset = () => {
-			clearTimeout(timer)
-			timer = setTimeout(() => lock(hubby), IDLE_MS)
-		}
-		for (const e of ACTIVITY) window.addEventListener(e, reset, { passive: true })
-		return () => {
-			clearTimeout(timer)
-			for (const e of ACTIVITY) window.removeEventListener(e, reset)
-		}
-	}, [active, unlocked, hubby])
+		const expires = unlockExpiry(hubby)
+		if (expires === null) return
+		const timer = setTimeout(() => {
+			api<{ data: { token: string, expiresIn: number } }>(`/api/hub/privacy/${hubby}/unlock/renew`, { method: 'POST', headers: unlockHeadersOf(hubby) })
+				.then(({ data }) => setUnlocked(hubby, data.token, data.expiresIn))
+				.catch(() => lock(hubby))
+		}, Math.max(0, expires - Date.now() - RENEW_BEFORE_MS))
+		return () => clearTimeout(timer)
+	}, [active, unlocked, hubby, revision])
 
 	if (unlocked) return <>{children}</>
 	return active ? <UnlockScreen hubby={hubby} label={label} pin={pin} /> : null
