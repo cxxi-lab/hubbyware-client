@@ -45,6 +45,7 @@ export function createElectronPlatform(): Platform {
 		name: 'electron', client: 'desktop', capabilities, runtime, player, persistSession: () => {},
 		...window.api,
 		push: null,
+		shortcuts: null,
 		hubbyStore: import.meta.env.DEV ? null : window.api.hubbyStore,
 		localModels: window.api.localModels,
 		localAi: window.api.localAi,

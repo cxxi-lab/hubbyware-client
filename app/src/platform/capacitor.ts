@@ -1,7 +1,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { createLocalAi, createLocalModels } from './capacitorLocalAi'
 import { createNativeSurfaces } from './capacitorSurfaces'
-import type { NativeIcon, NativePlayerAction, NativePlayerApi, NativePlayerOptions, NativePlayerPanel, Platform, PushApi, PlatformCapabilities, Unsubscribe, VpnInfo, WebsiteIntegration } from './types'
+import type { NativeIcon, NativePlayerAction, NativePlayerApi, NativePlayerOptions, NativePlayerPanel, Platform, PushApi, HomeShortcut, ShortcutsApi, PlatformCapabilities, Unsubscribe, VpnInfo, WebsiteIntegration } from './types'
 import { checkHubbyUpdates, createHubbyStore, startHubbyUpdates } from './capacitorHubbies'
 import { createUpdater } from './capacitorUpdater'
 import { createLocalStore } from './capacitorLocalStore'
@@ -92,6 +92,11 @@ const Player = registerPlugin<PlayerPlugin>('Player')
 const Session = registerPlugin<SessionPlugin>('Session')
 const DeviceSecrets = registerPlugin<DeviceSecretsPlugin>('DeviceSecrets')
 const Push = registerPlugin<PushPlugin>('Push')
+const Shortcuts = registerPlugin<{
+	supported(): Promise<{ supported: boolean }>
+	pin(options: HomeShortcut): Promise<{ requested: boolean }>
+	sync(options: { installed: HomeShortcut[] }): Promise<{ pinned: number, disabled: number }>
+}>('Shortcuts')
 const Theme = registerPlugin<{ set(options: { theme: 'light' | 'dark'; accent: string }): Promise<void> }>('Theme')
 
 /** Plugin listeners register asynchronously; the contract's unsubscribe is sync. */
@@ -110,6 +115,15 @@ const push: PushApi = {
 		}
 	},
 	onOpen: cb => subscribe(Push.addListener('open', ({ link }) => cb(link)))
+}
+
+const shortcuts: ShortcutsApi = {
+	supported: async () => {
+		try { return (await Shortcuts.supported()).supported }
+		catch { return false }
+	},
+	pin: async shortcut => (await Shortcuts.pin(shortcut)).requested,
+	sync: async installed => { await Shortcuts.sync({ installed }) }
 }
 
 const player: NativePlayerApi = {
@@ -202,6 +216,7 @@ export function createCapacitorPlatform(): Platform {
 		onHubbyFilesChange: () => () => {},
 		systemNotifications: null,
 		push,
+		shortcuts,
 		localStore: createLocalStore(),
 		hubbyStore: import.meta.env.DEV ? null : createHubbyStore(),
 		// the phone's own models (text, voice: client docs/plan-ia-android.md)

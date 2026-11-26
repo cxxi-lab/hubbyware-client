@@ -15,6 +15,7 @@ import { VpnSettings } from '@core/hubbies/common/VpnSettings'
 import { grantScopes, missingScopes, useHubbyScopes } from '@core/hubbies/scopes'
 import { useRevealedHubbies } from '@core/privacy/hidden'
 import { platform } from '@platform'
+import { HomeScreenSettings } from '@core/hubbies/common/HomeScreenSettings'
 
 /**
  * The hubbies screen (top-right menu > Hubbies), its pages in a sidebar (AppLayout):
@@ -390,6 +391,7 @@ function HubbySettings({ hubby: m, removable, pinned, onPin, onUninstall, onBack
 			{m.supports?.includes('notifications') && isInstalled(m) && <NotificationsSettings hubby={m} />}
 			{m.supports?.includes('vpn') && platform.capabilities.vpn && isInstalled(m) && <VpnSettings hubby={m} />}
 			{!m.local && <PrivacySettings hubby={m} />}
+			{isInstalled(m) && <HomeScreenSettings hubby={m} />}
 
 			{Own
 				? <Own />

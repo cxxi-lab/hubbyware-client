@@ -348,6 +348,23 @@ export interface LocalStoreApi {
  * The app's notifications by push (Android: Firebase Cloud Messaging): the server sends each change,
  * the shell shows it as a system notification, even with the app closed.
  */
+/** A hubby's own icon on the phone's home screen (docs/plan-raccourcis.md), opening the app on it. */
+export interface HomeShortcut {
+	hubby: string
+	label: string
+	/** a PNG (base64, or a data: URL): the adaptive icon's full square */
+	icon: string | null
+}
+
+export interface ShortcutsApi {
+	/** whether the launcher takes pinned shortcuts */
+	supported(): Promise<boolean>
+	/** asks the launcher to add it (its own dialog); false: it was not shown */
+	pin(shortcut: HomeShortcut): Promise<boolean>
+	/** the shortcuts of hubbies no longer here greyed, the ones back (and up to date) enabled */
+	sync(installed: HomeShortcut[]): Promise<void>
+}
+
 export interface PushApi {
 	/** Asks the permission to notify (once) and returns this device's token for the server; null: no push. */
 	register(): Promise<{ token: string; platform: 'android' } | null>
@@ -561,6 +578,8 @@ export interface Platform {
 	readonly systemNotifications: SystemNotificationsApi | null
 	/** null: no push (desktop: the open app shows them itself) */
 	readonly push: PushApi | null
+	/** null: no home screen shortcuts (desktop, for now) */
+	readonly shortcuts: ShortcutsApi | null
 	/** null: no local store here (Android, for now): a scope kept local isn't reachable on this device */
 	readonly localStore: LocalStoreApi | null
 	/** null: the hubbies come from their sources (development), all of them, nothing to install */

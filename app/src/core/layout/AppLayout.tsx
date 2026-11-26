@@ -27,6 +27,7 @@ import { startNotifications } from '@core/notifications/notifications'
 import { SystemNotifications } from '@core/notifications/SystemNotifications'
 import { TunnelGate } from '@core/vpn/TunnelGate'
 import { LockGate } from '@core/privacy/LockGate'
+import { HomeShortcuts } from '@core/hubby/HomeShortcuts'
 
 // Kept for TopBar's prop shape (built from the hubby manifests).
 export interface NavItem {
@@ -242,6 +243,7 @@ export function AppLayout() {
 		<HubbiesContext value={visibleHubbies}>
 		<div className="flex flex-col h-[calc(100vh-var(--status-bar-height))]">
 			<SystemNotifications />
+			<HomeShortcuts />
 			<TopBar domains={topBarDomains} activeDomainId={activeDomain?.id ?? null} />
 			<HubbyUpdates activeHubby={activeDomain?.id ?? null} />
 			<HubbyApiFrames />
