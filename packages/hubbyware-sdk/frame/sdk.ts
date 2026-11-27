@@ -45,6 +45,15 @@ const pathListeners = new Set<(path: string) => void>()
 const taskListeners = new Map<string, Set<(state: TaskState) => void>>()
 let init: Extract<HostMessage, { type: 'init' }> | null = null
 
+/** The host's first word (the frame's context), once it came. */
+export function whenInit(): Promise<Extract<HostMessage, { type: 'init' }>> {
+	if (init) return Promise.resolve(init)
+	return new Promise(resolve => {
+		const once = (m: Extract<HostMessage, { type: 'init' }>) => { initListeners.delete(once); resolve(m) }
+		initListeners.add(once)
+	})
+}
+
 function post(message: GuestMessage) {
 	const envelope: Envelope<GuestMessage> = { protocol: PROTOCOL, message }
 	// the host's origin can't be checked from an opaque origin: '*', the host checks the source
@@ -341,6 +350,14 @@ export interface AiSpeechRequest {
 
 export interface AiSpeechResult { audio: string, seconds: number }
 
+/** Pictures to embed: addresses on the Hubbyware server (its media proxy: what `api` gives). */
+export interface AiEmbedImagesRequest { model: string, urls: string[] }
+/** Each picture's vector (L2-normalised), null where it failed (`errors` says why). */
+export interface AiEmbedImagesResult { vectors: Array<number[] | null>, errors: Array<string | null> }
+/** A clip on the Hubbyware server, cut in `frames` stills spread over it (15 by default, at most 60). */
+export interface AiEmbedVideoRequest { model: string, url: string, frames?: number }
+export interface AiEmbedVideoResult { vectors: number[][], duration: number | null }
+
 /** One of an AI assistant's tools: an API method of a hubby opened to it. */
 export interface AgentTool {
 	/** its name for an engine (hubby__method) */
@@ -498,6 +515,13 @@ export const ai = {
 		try { return await call<AiSpeechResult>('ai.speech', id, request) }
 		finally { options.signal?.removeEventListener('abort', abort) }
 	},
+	/**
+	 * Image vectors on the desktop's GPU (one of the hubby's models, family embed; scope app:ai;
+	 * docs/plan-auto-desktop.md): of pictures, or of a clip's stills. The files must be on the
+	 * Hubbyware server (its media proxy). The first use asks the user like a chat's model.
+	 */
+	embedImages: (request: AiEmbedImagesRequest): Promise<AiEmbedImagesResult> => call<AiEmbedImagesResult>('ai.embedImages', request),
+	embedVideo: (request: AiEmbedVideoRequest): Promise<AiEmbedVideoResult> => call<AiEmbedVideoResult>('ai.embedVideo', request),
 	/** Files the user imports for this hubby (a file dialog: their consent), on this device. */
 	files: {
 		/** null: cancelled */

@@ -55,7 +55,7 @@ function apiPath(path: unknown): string {
  * navigation, its calls are made with the session, only within the scopes the account allowed it.
  * `headless`: a frame started only to answer its API (apis.ts): unseen, no page, no navigation.
  */
-export function HubbyHost({ hubby, headless = false }: { hubby: string, headless?: boolean }) {
+export function HubbyHost({ hubby, headless = false, background = false }: { hubby: string, headless?: boolean, background?: boolean }) {
 	const frame = useRef<HTMLIFrameElement>(null)
 	const navigate = useNavigate()
 	const { pathname, search } = useLocation()
@@ -67,7 +67,7 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 	const page = pathname === base ? '/' : pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : null
 	const inner = page === null ? null : page + search
 	const base_ = platform.hubbyUrl(hubby)
-	const src = base_ ? `${base_}?capabilities=${frameCapabilities()}${headless ? '&headless' : ''}` : null
+	const src = base_ ? `${base_}?capabilities=${frameCapabilities()}${headless ? '&headless' : ''}${headless && background ? '&background' : ''}` : null
 	// its web surfaces (D3): the webviews shown over the frame
 	const [surfaceStates, setSurfaceStates] = useState<Record<number, SurfaceState>>({})
 	// development: its files built again (`hubby dev`): the frame loads them (a new frame)
@@ -122,6 +122,26 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 
 	useEffect(() => {
 		const granted = (scope: string) => hasScope(state.current.scopes, hubby, scope)
+		const embedMedia = async (kind: 'embedImages' | 'embedVideo', request: unknown) => {
+			if (!granted('app:ai')) throw new Error('scope_denied: app:ai')
+			const run = platform.localAi?.[kind]
+			if (!run) throw new Error('unavailable: image vectors are made on a desktop only')
+			const r = (request ?? {}) as { model?: unknown, url?: unknown, urls?: unknown }
+			// only the Hubbyware server's files (a hubby can't have the app fetch elsewhere)
+			const server = new URL(getApiBaseUrl()).origin
+			const urls = kind === 'embedImages' ? (Array.isArray(r.urls) ? r.urls : []) : [r.url]
+			for (const u of urls) {
+				let origin = ''
+				try { origin = new URL(String(u)).origin } catch { /* not an address */ }
+				if (origin !== server) throw new Error(`invalid: ${String(u).slice(0, 80)} is not on the Hubbyware server`)
+			}
+			for (let attempt = 0; ; attempt++) {
+				const out = await run(hubby, request)
+				if (out.ok) return out.result
+				if ((out.code === 'consent' || out.code === 'missing') && attempt === 0 && typeof r.model === 'string' && await askModelConsent(hubby, r.model)) continue
+				throw new Error(`${out.code}: ${out.message}`)
+			}
+		}
 		// its own collections, through the app's client: their encrypted fields sealed here, by the
 		// host (the frame never sees the data key)
 		const own = (name: unknown) => {
@@ -342,6 +362,10 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 					streams.delete(id)
 				}
 			},
+			// image vectors of pictures and clips on the Hubbyware server (its media proxy), by the
+			// desktop's GPU (scope app:ai: docs/plan-auto-desktop.md); the first use asks the user
+			'ai.embedImages': (request: unknown) => embedMedia('embedImages', request),
+			'ai.embedVideo': (request: unknown) => embedMedia('embedVideo', request),
 			'ai.files.import': (kind: unknown) => {
 				if (!granted('app:ai')) throw new Error('scope_denied: app:ai')
 				if (!platform.localAi) throw new Error('local AI is not available on this device')

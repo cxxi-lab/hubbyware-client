@@ -22,6 +22,7 @@ type Reply =
 	| { type: 'ready' }
 	| { type: 'loaded', file: string, adapter: string | null }
 	| { type: 'vector', id: number, vector: Float32Array }
+	| { type: 'vectors', id: number, vectors: Float32Array[], duration: number | null }
 	| { type: 'error', id?: number, message: string }
 
 let child: ChildProcess | null = null
@@ -30,7 +31,7 @@ let loaded: string | null = null
 let loading: Promise<void> | null = null
 let nextId = 1
 let idle: NodeJS.Timeout | null = null
-const pending = new Map<number, { resolve: (v: Float32Array) => void, reject: (e: Error) => void, timer: NodeJS.Timeout }>()
+const pending = new Map<number, { resolve: (v: unknown) => void, reject: (e: Error) => void, timer: NodeJS.Timeout }>()
 let loadWaiter: { resolve: () => void, reject: (e: Error) => void } | null = null
 
 function stop(): void {
@@ -63,6 +64,7 @@ function startWorker(): Promise<void> {
 			if (m.type === 'ready') { clearTimeout(timer); resolve() }
 			else if (m.type === 'loaded') { loaded = m.file; console.log(`[ai:embed] ${path.basename(m.file)} on ${m.adapter ?? 'no GPU adapter'}`); loadWaiter?.resolve(); loadWaiter = null }
 			else if (m.type === 'vector') settle(m.id, null, m.vector)
+			else if (m.type === 'vectors') settle(m.id, null, { vectors: m.vectors, duration: m.duration })
 			else if (m.type === 'error') {
 				if (m.id !== undefined) settle(m.id, new Error(m.message))
 				else if (loadWaiter) { loadWaiter.reject(new Error(m.message)); loadWaiter = null }
@@ -86,13 +88,15 @@ function startWorker(): Promise<void> {
 	return started
 }
 
-function settle(id: number, error: Error | null, vector?: Float32Array): void {
+function settle(id: number, error: Error | null, value?: unknown): void {
 	const p = pending.get(id)
 	if (!p) return
 	pending.delete(id)
 	clearTimeout(p.timer)
+	// a long run of images: the worker stays while they come
+	if (child) armIdle()
 	if (error) p.reject(error)
-	else p.resolve(vector!)
+	else p.resolve(value)
 }
 
 async function ensureModel(file: string): Promise<void> {
@@ -119,8 +123,21 @@ export async function embedPixels(file: string, pixels: Float32Array): Promise<F
 	const id = nextId++
 	return new Promise<Float32Array>((resolve, reject) => {
 		const timer = setTimeout(() => settle(id, new Error('the image took too long')), EMBED_TIMEOUT_MS)
-		pending.set(id, { resolve, reject, timer })
+		pending.set(id, { resolve: v => resolve(v as Float32Array), reject, timer })
 		child?.send({ type: 'embed', id, pixels })
+	})
+}
+
+/** A clip's stills (spread over it) or an image, decoded and turned into vectors by the worker. */
+export async function embedMedia(file: string, kind: 'image' | 'video', bytes: Uint8Array, frames?: number): Promise<{ vectors: Float32Array[], duration: number | null }> {
+	await ensureModel(file)
+	armIdle()
+	const id = nextId++
+	const timeout = kind === 'video' ? EMBED_TIMEOUT_MS + 3_000 * (frames ?? 15) : EMBED_TIMEOUT_MS
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => settle(id, new Error(`the ${kind} took too long`)), timeout)
+		pending.set(id, { resolve: v => resolve(v as { vectors: Float32Array[], duration: number | null }), reject, timer })
+		child?.send({ type: 'media', id, kind, bytes, frames })
 	})
 }
 

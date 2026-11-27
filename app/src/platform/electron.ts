@@ -14,6 +14,7 @@ declare global {
 
 const capabilities: PlatformCapabilities = {
 	localAi: true,
+	background: true,
 	vpn: true,
 	vpnPerWebview: true,
 	privateMode: true,

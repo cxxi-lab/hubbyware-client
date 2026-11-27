@@ -221,6 +221,9 @@ export interface LocalAiApi {
 	speech(id: number, hubby: string, request: unknown): Promise<AiOutcome<AiSpeechResult>>
 	/** a web surface's picture (`surfaceId`: its webview's WebContents id), and its vector by an image model (desktop) */
 	snapshot?(hubby: string, surfaceId: number, request: unknown): Promise<AiOutcome<SurfaceSnapshot>>
+	/** pictures' and a clip's stills' vectors by an image model (desktop: docs/plan-auto-desktop.md) */
+	embedImages?(hubby: string, request: unknown): Promise<AiOutcome<{ vectors: Array<number[] | null>, errors: Array<string | null> }>>
+	embedVideo?(hubby: string, request: unknown): Promise<AiOutcome<{ vectors: number[][], duration: number | null }>>
 	/** the user picks a file for the hubby (null: cancelled) */
 	importFile(hubby: string, kind: AiImportKind): Promise<AiImportedFile | null>
 	/** the files a hubby imported (every one: null) */
@@ -477,6 +480,8 @@ export interface PlatformCapabilities {
 	devMode: boolean
 	/** AI models running on the device (`ai.chat`) */
 	localAi: boolean
+	/** a hubby's frame kept running unseen while the app runs (hubby.json `background`: docs/plan-auto-desktop.md D1) */
+	background?: boolean
 }
 
 /**

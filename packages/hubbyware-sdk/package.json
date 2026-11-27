@@ -1,6 +1,6 @@
 {
 	"name": "@cxxi-lab/hubbyware-sdk",
-	"version": "4.4.0",
+	"version": "4.5.0",
 	"description": "The contract of Hubbyware's hubbies: the SDK a hubby builds on, provided at run time by its frame's runtime (every hubby runs isolated). Formerly @cxxi-lab/hub-sdk.",
 	"license": "MIT",
 	"type": "module",

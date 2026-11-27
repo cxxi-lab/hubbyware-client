@@ -2,7 +2,7 @@ import { createElement, Fragment, StrictMode, useEffect, useRef, useState, type 
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import type { HubbyPage } from '../protocol'
-import { connect, nav, register, serveApi, useInit, usePath, type ApiHandler } from './sdk'
+import { connect, nav, register, serveApi, useInit, usePath, whenInit, type ApiHandler } from './sdk'
 
 /**
  * A hubby's front (docs/spec-hubby.md § 6) in its frame, in one of two forms:
@@ -30,7 +30,16 @@ export interface PagesDefinition {
 	/** the sections' icons in the navigation, by title */
 	navSections?: Record<string, unknown>
 	api?: Record<string, ApiHandler>
+	background?: BackgroundWork
 }
+
+/**
+ * Its background work (hubby.json `"background": true`, scope app:background, a desktop:
+ * docs/plan-auto-desktop.md D1): run once in a frame of its own, unseen, kept as long as the app
+ * runs (and the hubby is available: not locked, not hidden) — whatever page is open. It may return
+ * its end (called when the frame goes).
+ */
+export type BackgroundWork = () => void | (() => void)
 
 /** The form of a hubby's manifest (what the frame uses of it; the rest is the host's or left out). */
 export interface ManifestDefinition {
@@ -41,6 +50,7 @@ export interface ManifestDefinition {
 	/** contexts around all its pages, outermost first */
 	providers?: Array<ComponentType<{ children: ReactNode }>>
 	api?: Record<string, ApiHandler>
+	background?: BackgroundWork
 	pages?: never
 }
 
@@ -162,8 +172,17 @@ function ManifestRoot({ definition }: { definition: ManifestDefinition }) {
 export function start(definition: HubbyDefinition): void {
 	if (definition.api) serveApi(definition.api)
 	// a frame started only to answer its API: no page
-	if (new URLSearchParams(location.search).has('headless')) {
+	const params = new URLSearchParams(location.search)
+	if (params.has('headless')) {
 		connect()
+		// the hubby's background frame: its work, once the host said hello
+		if (params.has('background') && definition.background) {
+			const work = definition.background
+			void whenInit().then(() => {
+				const end = work()
+				if (typeof end === 'function') window.addEventListener('pagehide', () => end())
+			})
+		}
 		return
 	}
 	const root = createRoot(document.getElementById('root')!)

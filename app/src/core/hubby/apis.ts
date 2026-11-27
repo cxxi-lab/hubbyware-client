@@ -37,10 +37,14 @@ export function allApis(): Array<{ hubby: string, methods: Record<string, ApiMet
 /** The hubbies that may answer now (the app's layout says: active, shown, unlocked). */
 export function setAvailableHubbies(ids: string[]): void {
 	available = new Set(ids)
-	// an unseen frame of a hubby gone (locked, hidden again): stopped
+	// an unseen frame of a hubby gone (locked, hidden again): stopped, its background work too
 	let stopped = false
 	for (const [hubby, timer] of headless) {
-		if (!available.has(hubby)) { clearTimeout(timer); headless.delete(hubby); stopped = true }
+		if (!available.has(hubby)) { if (timer) clearTimeout(timer); headless.delete(hubby); stopped = true }
+	}
+	// back: its background work starts again
+	for (const hubby of background) {
+		if (available.has(hubby) && !headless.has(hubby)) { headless.set(hubby, null); stopped = true }
 	}
 	if (stopped) changed()
 }
@@ -128,7 +132,9 @@ const IDLE_MS = 120_000
 const START_MS = 20_000
 const CALL_MS = 30_000
 
-const headless = new Map<string, ReturnType<typeof setTimeout>>()
+const headless = new Map<string, ReturnType<typeof setTimeout> | null>()
+/** the hubbies working in the background: their unseen frame stays (no idle end) */
+let background = new Set<string>()
 let headlessIds: string[] = []
 const headlessListeners = new Set<() => void>()
 const changed = () => {
@@ -138,10 +144,30 @@ const changed = () => {
 
 /** Keeps the hubby's unseen frame for IDLE_MS more (started if it isn't). */
 function keepHeadless(hubby: string) {
+	const had = headless.has(hubby)
 	const timer = headless.get(hubby)
 	if (timer) clearTimeout(timer)
-	headless.set(hubby, setTimeout(() => { headless.delete(hubby); changed() }, IDLE_MS))
-	if (!timer) changed()
+	headless.set(hubby, background.has(hubby) ? null : setTimeout(() => { headless.delete(hubby); changed() }, IDLE_MS))
+	if (!had) changed()
+}
+
+/**
+ * The hubbies working in the background (docs/plan-auto-desktop.md D1): their unseen frame runs as
+ * long as they are in the list; one leaving it goes back to answering its API only (then ends idle).
+ */
+export function setBackgroundHubbies(ids: string[]): void {
+	const next = new Set(ids)
+	const left = [...background].filter(id => !next.has(id))
+	background = next
+	for (const id of next) {
+		if (!available.has(id)) continue
+		const timer = headless.get(id)
+		if (timer) clearTimeout(timer)
+		headless.set(id, null)
+	}
+	// its frame, if it runs, ends once idle
+	for (const id of left) if (headless.has(id)) keepHeadless(id)
+	changed()
 }
 
 async function frameOf(hubby: string): Promise<Server> {
@@ -211,5 +237,7 @@ export const headlessFrames = {
 		headlessListeners.add(listener)
 		return () => { headlessListeners.delete(listener) }
 	},
-	current: (): string[] => headlessIds
+	current: (): string[] => headlessIds,
+	/** the frame is the hubby's background one (it runs its `background` work) */
+	isBackground: (hubby: string): boolean => background.has(hubby)
 }

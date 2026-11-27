@@ -132,6 +132,9 @@ const api = {
 		speech: (id: number, hubby: string, request: unknown) => ipcRenderer.invoke('ai:speech', id, hubby, request),
 		// a web surface's picture and its vector (main: ai/snapshot.ts)
 		snapshot: (hubby: string, surfaceId: number, request: unknown) => ipcRenderer.invoke('ai:snapshot', hubby, surfaceId, request),
+		// pictures and clips' vectors (main: ai/media.ts)
+		embedImages: (hubby: string, request: unknown) => ipcRenderer.invoke('ai:embed-images', hubby, request),
+		embedVideo: (hubby: string, request: unknown) => ipcRenderer.invoke('ai:embed-video', hubby, request),
 		// files imported for a hubby (main: ai/imports.ts)
 		importFile: (hubby: string, kind: 'checkpoint' | 'lora' | 'audio') => invoke('ai-files:add', hubby, kind),
 		importedFiles: (hubby: string | null) => invoke('ai-files:list', hubby),

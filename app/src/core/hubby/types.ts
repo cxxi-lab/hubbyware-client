@@ -77,6 +77,11 @@ export interface HubbyManifest {
 	 */
 	supports?: HubbySupport[]
 	/**
+	 * It works in the background (hubby.json `background`): a frame of its own kept running unseen
+	 * while the app runs, on a desktop, once its scope app:background is granted (apis.ts).
+	 */
+	background?: boolean
+	/**
 	 * Contexts this hubby needs around the whole app while it is active (e.g. a job followed from
 	 * any page), outermost first.
 	 */

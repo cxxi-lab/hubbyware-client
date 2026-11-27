@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { embedPixels } from './embed'
-import { modelFiles, modelPlans } from './models'
+import { embedModelFile } from './media'
 
 /**
  * A web surface's picture (docs/plan-discover-scan.md): what a hubby's surface shows (a site's
@@ -97,15 +97,9 @@ export async function snapshot(hubby: string, host: WebContents, surfaceId: unkn
 
 	let file: string | null = null
 	if (r.model) {
-		const plan = (await modelPlans()).find(p => p.hubby === hubby && p.name === r.model)
-		if (!plan || plan.invalid) return invalid(`${hubby} declares no model ${r.model} this device accepts`)
-		if (plan.family !== 'embed') return invalid(`${r.model} is not an image vector model (family embed)`)
-		if (plan.chosen === null) return { ok: false, code: 'unavailable', message: `${r.model} cannot run on this device` }
-		if (!plan.consented) return { ok: false, code: 'consent', message: `${r.model} is not allowed on this device yet` }
-		const files = modelFiles(hubby, r.model)
-		file = files?.find(f => f.endsWith('.onnx')) ?? null
-		if (!files) return { ok: false, code: 'missing', message: `${r.model} is not downloaded yet` }
-		if (!file) return invalid(`${r.model}: an image vector model is an ONNX file`)
+		const resolved = await embedModelFile(hubby, r.model)
+		if (!resolved.ok) return resolved
+		file = resolved.file
 	}
 
 	try {

@@ -6,6 +6,7 @@ import { chat } from './chat'
 import { generateImage } from './image'
 import { speak } from './speech'
 import { snapshot } from './snapshot'
+import { embedImages, embedVideo } from './media'
 import { forgetFile, importedFiles, importFile, type ImportKind } from './imports'
 import { openMcpSession } from './mcp'
 import { writeFileSync } from 'node:fs'
@@ -77,6 +78,9 @@ export function setupLocalAi(): void {
 		if (typeof hubby !== 'string') return { ok: false, code: 'invalid', message: 'invalid snapshot' }
 		return snapshot(hubby, e.sender, surfaceId, request)
 	})
+	// the vectors of pictures and clips on the Hubbyware server (the app has checked the scope and the address)
+	ipcMain.handle('ai:embed-images', (_e, hubby: unknown, request: unknown) => typeof hubby === 'string' ? embedImages(hubby, request) : { ok: false, code: 'invalid', message: 'invalid hubby' })
+	ipcMain.handle('ai:embed-video', (_e, hubby: unknown, request: unknown) => typeof hubby === 'string' ? embedVideo(hubby, request) : { ok: false, code: 'invalid', message: 'invalid hubby' })
 	// files the user imports for a hubby (a checkpoint, a LoRA, a voice sample): the dialog is the consent
 	ipcMain.handle('ai-files:add', (e, hubby: unknown, kind: unknown) => {
 		if (typeof hubby !== 'string' || !['checkpoint', 'lora', 'audio'].includes(String(kind))) throw new Error('a kind of file: checkpoint, lora or audio')

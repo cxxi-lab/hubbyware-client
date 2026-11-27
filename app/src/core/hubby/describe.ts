@@ -23,6 +23,8 @@ export interface HubbyInfo {
 	 * through the user's VPN (the platform's 'vpn' support then; formerly `supports: ['vpn']`)
 	 */
 	network?: { egress?: string } | string
+	/** a frame kept running unseen while the app runs (docs/plan-auto-desktop.md D1) */
+	background?: boolean
 }
 
 /** Whether a hubby.json says it goes out through the VPN (`network`, or formerly `supports`). */
@@ -32,7 +34,7 @@ export function goesThroughVpn(info: Pick<HubbyInfo, 'network' | 'supports'>): b
 		|| (info.supports ?? []).includes('vpn')
 }
 
-type Described = Pick<HubbyManifest, 'label' | 'description' | 'local' | 'requires' | 'requiresCapabilities' | 'supports'>
+type Described = Pick<HubbyManifest, 'label' | 'description' | 'local' | 'requires' | 'requiresCapabilities' | 'supports' | 'background'>
 
 /** The manifest's descriptive part, from its hubby.json (one source for both). */
 export function describe(info: HubbyInfo): Described {
@@ -42,6 +44,7 @@ export function describe(info: HubbyInfo): Described {
 		local: info.local,
 		requires: info.requires,
 		requiresCapabilities: info.requiresCapabilities as Described['requiresCapabilities'],
+		background: info.background === true ? true : undefined,
 		// going out through the VPN: the platform's 'vpn' support (its tunnel, its VPN settings)
 		supports: (goesThroughVpn(info) ? [...new Set([...(info.supports ?? []), 'vpn'])] : info.supports) as Described['supports']
 	}
