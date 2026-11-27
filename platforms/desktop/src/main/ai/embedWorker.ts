@@ -63,7 +63,9 @@ async function vectorOf(pixels) {
 	if (${JSON.stringify(!!process.env.HUB_AI_EMBED_DEBUG)}) console.log('[ai:embed] run', Math.round(performance.now() - t), 'ms')
 	const v = Float32Array.from(out[output].data)
 	let n = 0; for (const x of v) n += x * x
-	n = Math.sqrt(n) || 1
+	n = Math.sqrt(n)
+	// a GPU in trouble (its memory full, the device lost) gives zeros or NaN instead of an error
+	if (!(n > 1e-6) || !isFinite(n)) throw new Error('the GPU answered nothing (its memory full, or the device lost)')
 	for (let i = 0; i < v.length; i++) v[i] /= n
 	return v
 }

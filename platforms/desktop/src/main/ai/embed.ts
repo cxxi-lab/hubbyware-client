@@ -88,9 +88,16 @@ function startWorker(): Promise<void> {
 	return started
 }
 
+/** the worker's GPU in trouble (no answer, or nothing in it): a fresh worker next time */
+const BROKEN = /GPU answered nothing|took too long|device lost|out of memory/i
+
 function settle(id: number, error: Error | null, value?: unknown): void {
 	const p = pending.get(id)
 	if (!p) return
+	if (error && BROKEN.test(error.message)) {
+		console.warn('[ai:embed] the worker\'s GPU is in trouble: started afresh next time:', error.message)
+		setTimeout(stop, 0)
+	}
 	pending.delete(id)
 	clearTimeout(p.timer)
 	// a long run of images: the worker stays while they come
