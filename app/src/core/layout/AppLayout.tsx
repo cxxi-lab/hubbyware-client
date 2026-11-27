@@ -121,8 +121,9 @@ export function AppLayout() {
 
 	// Enabled hubbies in the user's order: the home page and the routes mounted (the top bar: the pinned ones).
 	const visibleHubbies = useMemo(() => enabledModules(hubbies, revealed), [hubbies, revealed, registry])
-	// the hubbies whose API may answer the others (docs/plan-api-hubbies.md): shown and unlocked
-	const answering = visibleHubbies.map(m => m.id).filter(id => !(hubbies.locked ?? []).includes(id)).join(',')
+	// the hubbies whose API may answer the others (docs/plan-api-hubbies.md) and whose background
+	// work runs: the shown ones, locked or not (a lock only hides a hubby's screens: user, 2026-11-27)
+	const answering = visibleHubbies.map(m => m.id).join(',')
 	useEffect(() => { setAvailableHubbies(answering ? answering.split(',') : []) }, [answering])
 	// a device agent's requests through Hubbyware's MCP server (desktop): answered here, as the assistant's
 	useEffect(() => startAgentBridge(), [])

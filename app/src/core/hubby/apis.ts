@@ -34,10 +34,10 @@ export function allApis(): Array<{ hubby: string, methods: Record<string, ApiMet
 	return [...apis].map(([hubby, methods]) => ({ hubby, methods, doc: docs.get(hubby) ?? null }))
 }
 
-/** The hubbies that may answer now (the app's layout says: active, shown, unlocked). */
+/** The hubbies that may answer now (the app's layout says: active, shown; a lock only hides screens). */
 export function setAvailableHubbies(ids: string[]): void {
 	available = new Set(ids)
-	// an unseen frame of a hubby gone (locked, hidden again): stopped, its background work too
+	// an unseen frame of a hubby gone (hidden again, disabled): stopped, its background work too
 	let stopped = false
 	for (const [hubby, timer] of headless) {
 		if (!available.has(hubby)) { if (timer) clearTimeout(timer); headless.delete(hubby); stopped = true }
