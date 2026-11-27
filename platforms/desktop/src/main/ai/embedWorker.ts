@@ -56,7 +56,15 @@ ipcRenderer.on('load', async (_e, f) => {
 	}
 	catch (err) { ipcRenderer.send('failed', { message: String(err?.message ?? err) }) }
 })
-async function vectorOf(pixels) {
+// one run at a time: a session refuses a run while another goes ("Session already started"), and
+// several hubbies' work meet here (Discover's scan, Auto in the background)
+let queue = Promise.resolve()
+function vectorOf(pixels) {
+	const run = queue.then(() => runOnce(pixels))
+	queue = run.catch(() => {})
+	return run
+}
+async function runOnce(pixels) {
 	if (!session) throw new Error('no model loaded')
 	const t = performance.now()
 	const out = await session.run({ [input]: new ort.Tensor('float32', pixels, [1, 3, 224, 224]) })
