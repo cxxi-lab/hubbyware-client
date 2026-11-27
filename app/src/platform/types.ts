@@ -129,7 +129,7 @@ export interface ModelPlan {
 	hubby: string
 	hubbyLabel: string
 	name: string
-	family: 'text' | 'image' | 'voice'
+	family: 'text' | 'image' | 'voice' | 'embed'
 	description: string | null
 	variants: ModelVariantPlan[]
 	/** the variant this device uses, null: none can run here */
@@ -219,11 +219,23 @@ export interface LocalAiApi {
 	onEvent(cb: (event: { id: number, kind: 'delta' | 'reasoning', text: string }) => void): Unsubscribe
 	image(id: number, hubby: string, request: unknown): Promise<AiOutcome<AiImageResult>>
 	speech(id: number, hubby: string, request: unknown): Promise<AiOutcome<AiSpeechResult>>
+	/** a web surface's picture (`surfaceId`: its webview's WebContents id), and its vector by an image model (desktop) */
+	snapshot?(hubby: string, surfaceId: number, request: unknown): Promise<AiOutcome<SurfaceSnapshot>>
 	/** the user picks a file for the hubby (null: cancelled) */
 	importFile(hubby: string, kind: AiImportKind): Promise<AiImportedFile | null>
 	/** the files a hubby imported (every one: null) */
 	importedFiles(hubby: string | null): Promise<AiImportedFile[]>
 	forgetFile(sha256: string): Promise<void>
+}
+
+/** A web surface's picture (SDK WebSurfaceElement.snapshot, docs/plan-discover-scan.md). */
+export interface SurfaceSnapshot {
+	/** data:image/jpeg URL */
+	image: string
+	/** the video's position (s), when a video was captured */
+	time: number | null
+	/** its vector (L2-normalised), when a model was asked */
+	vector: number[] | null
 }
 
 export type AiImportKind = 'checkpoint' | 'lora' | 'audio'

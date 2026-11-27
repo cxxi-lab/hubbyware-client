@@ -21,7 +21,8 @@ import { parseDevices, pickDevice } from './engine'
  * - only once the user agreed, on this device (the Models screen; the first use: ai.chat, phase 3).
  */
 
-export type Family = 'text' | 'image' | 'voice'
+/** embed: an image model giving vectors (CLIP, ONNX on WebGPU: ai/embed.ts) */
+export type Family = 'text' | 'image' | 'voice' | 'embed'
 export interface ModelFile { path: string, sha256: string, size: number }
 export interface ModelVariant { repo: string, revision: string, files: ModelFile[], requires?: { vram?: number, ram?: number } }
 export interface ModelDeclaration { family: Family, description?: string, variants: ModelVariant[] }
@@ -109,7 +110,7 @@ const directory = (index = readIndex()): string => index.directory ?? defaultDir
 /** A declaration as a device accepts it, else why not (the same rules as hubby-cli's checkAi). */
 export function validDeclaration(model: unknown): { model: ModelDeclaration } | { error: string } {
 	const m = model as Partial<ModelDeclaration> | null
-	if (!m || typeof m !== 'object' || !['text', 'image', 'voice'].includes(m.family as string)) return { error: 'no family' }
+	if (!m || typeof m !== 'object' || !['text', 'image', 'voice', 'embed'].includes(m.family as string)) return { error: 'no family' }
 	if (!Array.isArray(m.variants) || m.variants.length === 0) return { error: 'no variant' }
 	for (const v of m.variants) {
 		if (!v || !REPO.test(v.repo ?? '') || !COMMIT.test(v.revision ?? '')) return { error: 'a variant is not pinned to a commit' }

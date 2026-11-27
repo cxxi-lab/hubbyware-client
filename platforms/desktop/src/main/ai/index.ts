@@ -5,6 +5,7 @@ import { localEngine, reapOrphanServer } from './engine'
 import { chat } from './chat'
 import { generateImage } from './image'
 import { speak } from './speech'
+import { snapshot } from './snapshot'
 import { forgetFile, importedFiles, importFile, type ImportKind } from './imports'
 import { openMcpSession } from './mcp'
 import { writeFileSync } from 'node:fs'
@@ -70,6 +71,11 @@ export function setupLocalAi(): void {
 		const controller = new AbortController()
 		chats.set(id, controller)
 		return speak(hubby, request, controller.signal).finally(() => chats.delete(id))
+	})
+	// a surface's picture, and its vector by an image model (the app has checked the hubby's scope)
+	ipcMain.handle('ai:snapshot', (e, hubby: unknown, surfaceId: unknown, request: unknown) => {
+		if (typeof hubby !== 'string') return { ok: false, code: 'invalid', message: 'invalid snapshot' }
+		return snapshot(hubby, e.sender, surfaceId, request)
 	})
 	// files the user imports for a hubby (a checkpoint, a LoRA, a voice sample): the dialog is the consent
 	ipcMain.handle('ai-files:add', (e, hubby: unknown, kind: unknown) => {

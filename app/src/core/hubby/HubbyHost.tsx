@@ -241,7 +241,19 @@ export function HubbyHost({ hubby, headless = false }: { hubby: string, headless
 				if (next) copy[id] = next
 				else delete copy[id]
 				return copy
-			}), surfaceElements, (path, options) => caller.api(path, options)),
+			}), surfaceElements, (path, options) => caller.api(path, options), async (surfaceId, request) => {
+				// its vector needs an image model of its own (scope app:ai); the picture alone, none
+				const model = (request as { model?: unknown } | null)?.model
+				if (model !== undefined && !granted('app:ai')) throw new Error('scope_denied: app:ai')
+				const take = platform.localAi?.snapshot
+				if (!take) throw new Error('unavailable: a surface\'s picture is taken on a desktop only')
+				for (let attempt = 0; ; attempt++) {
+					const out = await take(hubby, surfaceId, request)
+					if (out.ok) return out.result
+					if ((out.code === 'consent' || out.code === 'missing') && attempt === 0 && typeof model === 'string' && await askModelConsent(hubby, model)) continue
+					throw new Error(`${out.code}: ${out.message}`)
+				}
+			}),
 			// the other hubbies' APIs (docs/plan-api-hubbies.md), within its scopes
 			'hubbies.call': (target: unknown, method: unknown, input: unknown) => {
 				if (typeof target !== 'string' || typeof method !== 'string') throw new Error('hubbies.call(hubby, method, input)')

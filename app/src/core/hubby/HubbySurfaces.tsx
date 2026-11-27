@@ -24,6 +24,8 @@ export type WebviewElement = HTMLElement & {
 	goForward(): void
 	canGoBack(): boolean
 	canGoForward(): boolean
+	/** desktop's webview only: its WebContents (a snapshot is taken by the main process) */
+	getWebContentsId?(): number
 }
 
 export interface Surfaces {
@@ -36,6 +38,8 @@ export function surfaceMethods(
 	update: (id: number, state: SurfaceState | null) => void,
 	elements: Map<number, WebviewElement>,
 	call: ApiCall,
+	/** a picture of a surface (its webview's WebContents id), with its vector if asked: the host checks the scope */
+	snapshot?: (surfaceId: number, request: unknown) => Promise<unknown>,
 ): Record<string, (...args: unknown[]) => unknown> {
 	const element = (id: unknown) => {
 		const el = typeof id === 'number' ? elements.get(id) : undefined
@@ -57,6 +61,11 @@ export function surfaceMethods(
 		'surface.exec': (id: unknown, code: unknown) => element(id).executeJavaScript(String(code)),
 		'surface.reload': (id: unknown) => { element(id).reload(); return null },
 		'surface.back': (id: unknown) => { const el = element(id); if (el.canGoBack()) el.goBack(); return null },
+		'surface.snapshot': (id: unknown, request: unknown) => {
+			const el = element(id)
+			if (!snapshot || typeof el.getWebContentsId !== 'function') throw new Error('unavailable: a surface\'s picture is taken on a desktop only')
+			return snapshot(el.getWebContentsId(), request)
+		},
 		'surface.forward': (id: unknown) => { const el = element(id); if (el.canGoForward()) el.goForward(); return null },
 		'surface.load': async (id: unknown, url: unknown) => {
 			if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('a surface loads an http(s) page')

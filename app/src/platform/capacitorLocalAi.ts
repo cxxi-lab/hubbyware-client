@@ -15,7 +15,7 @@ import type {
  * the measures of § 2), on its CPU, one at a time.
  */
 
-type Family = 'text' | 'image' | 'voice'
+type Family = 'text' | 'image' | 'voice' | 'embed'
 interface ModelFile { path: string, sha256: string, size: number }
 interface ModelVariant { repo: string, revision: string, files: ModelFile[], requires?: { vram?: number, ram?: number } }
 interface ModelDeclaration { family: Family, description?: string, variants: ModelVariant[] }
@@ -104,7 +104,7 @@ function changed(throttle = false): void {
 
 function validDeclaration(model: unknown): { model: ModelDeclaration } | { error: string } {
 	const m = model as Partial<ModelDeclaration> | null
-	if (!m || typeof m !== 'object' || !['text', 'image', 'voice'].includes(m.family as string)) return { error: 'no family' }
+	if (!m || typeof m !== 'object' || !['text', 'image', 'voice', 'embed'].includes(m.family as string)) return { error: 'no family' }
 	if (!Array.isArray(m.variants) || m.variants.length === 0) return { error: 'no variant' }
 	for (const v of m.variants) {
 		if (!v || !REPO.test(v.repo ?? '') || !COMMIT.test(v.revision ?? '')) return { error: 'a variant is not pinned to a commit' }
@@ -122,6 +122,8 @@ function validDeclaration(model: unknown): { model: ModelDeclaration } | { error
  */
 function fitOf(family: Family, variant: ModelVariant, device: DeviceInfo, installed: boolean): { fit: ModelFit, reason: string } {
 	if (family === 'image') return { fit: 'cannot', reason: 'images are too slow on this device' }
+	// image vectors (CLIP) run on a desktop's GPU only (docs/plan-discover-scan.md D4)
+	if (family === 'embed') return { fit: 'cannot', reason: 'image vectors run on a desktop only' }
 	if (variant.files.some(f => /mmproj/i.test(f.path))) return { fit: 'cannot', reason: 'seeing images is too slow on this device' }
 	if (!device[family]) return { fit: 'cannot', reason: 'no AI engine for this device' }
 	if (device.ramMib < PHONE_MIN_RAM_MIB) return { fit: 'cannot', reason: `needs a device with ${Math.ceil(PHONE_MIN_RAM_MIB / 1024)} GB of RAM` }

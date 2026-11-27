@@ -36,6 +36,27 @@ export interface WebSurfaceElement {
 	/** as of its last navigation (the host tells them with each did-navigate) */
 	canGoBack(): boolean
 	canGoForward(): boolean
+	/**
+	 * A picture of what it shows (desktop only), as the page draws it: `selector` an element of the
+	 * page (e.g. `video`, its visible part; else the whole page), a JPEG `thumbWidth` wide (64–640,
+	 * 320), and with `model` (one of the hubby's AI models, family embed, scope app:ai) its vector,
+	 * by the device's GPU. `time`: the video's position, when a video was captured.
+	 */
+	snapshot(options?: SurfaceSnapshotOptions): Promise<SurfaceSnapshot>
+}
+
+export interface SurfaceSnapshotOptions {
+	selector?: string
+	thumbWidth?: number
+	model?: string
+}
+
+export interface SurfaceSnapshot {
+	/** data:image/jpeg URL */
+	image: string
+	time: number | null
+	/** L2-normalised (a dot product is the cosine similarity), when a model was asked */
+	vector: number[] | null
 }
 
 let nextSurface = 1
@@ -82,6 +103,7 @@ export const WebSurface = forwardRef<WebSurfaceElement, WebSurfaceProps>(functio
 			goForward: () => { void call('surface.forward', id) },
 			canGoBack: () => history.back,
 			canGoForward: () => history.forward,
+			snapshot: options => call<SurfaceSnapshot>('surface.snapshot', id, options ?? {}),
 			emit(event, detail) {
 				if ((event === 'did-navigate' || event === 'did-navigate-in-page') && typeof detail.url === 'string' && detail.isMainFrame !== false) url.current = detail.url
 				if (typeof detail.canGoBack === 'boolean') history.back = detail.canGoBack

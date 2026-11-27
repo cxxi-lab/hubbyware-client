@@ -14,7 +14,7 @@ export type {
 	HubbyManifest, HubbyNavItem, HubbyRoute, ListResponse, NativeIcon, NativePlayerAction, NativePlayerApi, NativePlayerOptions,
 	NativePlayerPanel, PaginatedResponse, SingleResponse, TimelineItem, Unsubscribe
 } from './types'
-export { WebSurface, type WebSurfaceElement, type WebSurfaceProps } from './WebSurface'
+export { WebSurface, type SurfaceSnapshot, type SurfaceSnapshotOptions, type WebSurfaceElement, type WebSurfaceProps } from './WebSurface'
 export { useBackHandler, useMediaQuery } from '@cxxi-lab/hubbyware-ui'
 // the design system's components, as the app's SDK hands them too
 export {
